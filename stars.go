@@ -3909,6 +3909,7 @@ func (sp *STARSPane) drawTracks(aircraft []*Aircraft, ctx *PaneContext, transfor
 	cb.PointSize(5)
 	pd.GenerateCommands(cb)
 	trid.GenerateCommands(cb)
+	cb.LineWidth(1)
 	ld.GenerateCommands(cb)
 	transforms.LoadWindowViewingMatrices(cb)
 	td.GenerateCommands(cb)
@@ -4464,6 +4465,7 @@ func (sp *STARSPane) drawDatablocks(aircraft []*Aircraft, ctx *PaneContext,
 
 	transforms.LoadWindowViewingMatrices(cb)
 	td.GenerateCommands(cb)
+	cb.LineWidth(1)
 	ld.GenerateCommands(cb)
 }
 
@@ -4836,6 +4838,8 @@ func (sp *STARSPane) consumeMouseEvents(ctx *PaneContext, ghosts []*GhostAircraf
 					info = append(info, "Straight in approach")
 				}
 			}
+			wp, _ := WaypointArray(ac.Waypoints).MarshalJSON()
+			info = append(info, "Route: "+string(wp))
 
 			info = FilterSlice(info, func(s string) bool { return s != "" })
 			infoLines := strings.Join(info, "\n")
@@ -4848,7 +4852,7 @@ func (sp *STARSPane) consumeMouseEvents(ctx *PaneContext, ghosts []*GhostAircraf
 			style := TextStyle{
 				Font:        font,
 				Color:       ps.Brightness.FullDatablocks.ScaleRGB(STARSListColor),
-				LineSpacing: -2}
+				LineSpacing: 0}
 
 			// Aircraft track position in window coordinates
 			state := sp.Aircraft[ac.Callsign]

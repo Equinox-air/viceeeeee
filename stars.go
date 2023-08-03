@@ -4,7 +4,6 @@
 
 // Main missing features:
 // Altitude alerts
-// CDRA (can build off of CRDAConfig, however)
 
 package main
 
@@ -35,6 +34,7 @@ var (
 	STARSTrackedAircraftColor    = RGB{1, 1, 1}
 	STARSUntrackedAircraftColor  = RGB{0, 1, 0}
 	STARSPointedOutAircraftColor = RGB{1, 1, 0}
+	STARSGhostColor              = RGB{1, 1, 0}
 	STARSSelectedAircraftColor   = RGB{0, 1, 1}
 
 	STARSDCBButtonColor         = RGB{0, .4, 0}
@@ -80,6 +80,9 @@ type STARSPane struct {
 	QuickLookAll       bool
 	QuickLookAllIsPlus bool
 	QuickLookPositions []QuickLookPosition
+
+	// For CRDA
+	ConvergingRunways []STARSConvergingRunways
 
 	// Various UI state
 	scopeClickHandler   func(pw [2]float32, transforms ScopeTransformations) STARSCommandStatus
@@ -195,6 +198,38 @@ func parseQuickLookPositions(w *World, s string) ([]QuickLookPosition, string, e
 	return positions, "", nil
 }
 
+type CRDAMode int
+
+const (
+	CRDAModeStagger = iota
+	CRDAModeTie
+)
+
+// this is read-only, stored in STARSPane for convenience
+type STARSConvergingRunways struct {
+	ConvergingRunways
+	ApproachRegions [2]*ApproachRegion
+	Airport         string
+	Index           int
+}
+
+type CRDARunwayState struct {
+	Enabled                 bool
+	DrawCourseLines         bool
+	DrawQualificationRegion bool
+}
+
+// stores the per-preference set state for each STARSConvergingRunways
+type CRDARunwayPairState struct {
+	Enabled     bool
+	Mode        CRDAMode
+	RunwayState [2]CRDARunwayState
+}
+
+func (c *STARSConvergingRunways) getRunwaysString() string {
+	return c.Runways[0] + "/" + c.Runways[1]
+}
+
 type CommandMode int
 
 const (
@@ -240,6 +275,8 @@ type STARSAircraftState struct {
 	DisplayTPASize bool // flip this so that zero-init works here? (What is the default?)
 
 	LeaderLineDirection *CardinalOrdinalDirection // nil -> unset
+
+	ForceGhost bool
 
 	displayPilotAltitude bool
 	pilotAltitude        int
@@ -318,7 +355,6 @@ type STARSFacility struct {
 
 	// TODO: transition alt -> show pressure altitude above
 	// TODO: RNAV patterns
-	// TODO: automatic scratchpad stuff
 }
 
 type STARSMap struct {
@@ -382,7 +418,10 @@ type STARSPreferenceSet struct {
 		Associated   [2]int
 	}
 
-	DisableCRDA bool
+	CRDADisabled bool
+	// Has the same size and indexing as corresponding STARSPane
+	// STARSConvergingRunways
+	CRDARunwayPairState []CRDARunwayPairState
 
 	DisplayLDBBeaconCodes bool // TODO: default?
 	SelectedBeaconCodes   []string
@@ -509,6 +548,16 @@ type STARSPreferenceSet struct {
 	}
 }
 
+func (ps *STARSPreferenceSet) ResetCRDAState(rwys []STARSConvergingRunways) {
+	ps.CRDARunwayPairState = nil
+	state := CRDARunwayPairState{}
+	// The first runway is enabled by default
+	state.RunwayState[0].Enabled = true
+	for range rwys {
+		ps.CRDARunwayPairState = append(ps.CRDARunwayPairState, state)
+	}
+}
+
 type DwellMode int
 
 const (
@@ -541,7 +590,7 @@ const (
 	DCBPositionBottom
 )
 
-func MakePreferenceSet(name string, facility STARSFacility, w *World) STARSPreferenceSet {
+func (sp *STARSPane) MakePreferenceSet(name string, w *World) STARSPreferenceSet {
 	var ps STARSPreferenceSet
 
 	ps.Name = name
@@ -643,12 +692,15 @@ func MakePreferenceSet(name string, facility STARSFacility, w *World) STARSPrefe
 	ps.TowerLists[2].Position = [2]float32{.05, .9}
 	ps.TowerLists[2].Lines = 5
 
+	ps.ResetCRDAState(sp.ConvergingRunways)
+
 	return ps
 }
 
 func (ps *STARSPreferenceSet) Duplicate() STARSPreferenceSet {
 	dupe := *ps
 	dupe.SelectedBeaconCodes = DuplicateSlice(ps.SelectedBeaconCodes)
+	dupe.CRDARunwayPairState = DuplicateSlice(ps.CRDARunwayPairState)
 	dupe.VideoMapVisible = DuplicateMap(ps.VideoMapVisible)
 	return dupe
 }
@@ -771,13 +823,12 @@ func (b STARSBrightness) ScaleRGB(r RGB) RGB {
 ///////////////////////////////////////////////////////////////////////////
 // STARSPane proper
 
-// Takes aircraft position in window coordinates
 func NewSTARSPane(w *World) *STARSPane {
 	sp := &STARSPane{
 		Facility:              MakeDefaultFacility(),
 		SelectedPreferenceSet: -1,
 	}
-	sp.CurrentPreferenceSet = MakePreferenceSet("", sp.Facility, w)
+	sp.CurrentPreferenceSet = sp.MakePreferenceSet("", w)
 	return sp
 }
 
@@ -786,7 +837,7 @@ func (sp *STARSPane) Name() string { return "STARS" }
 func (sp *STARSPane) Activate(w *World, eventStream *EventStream) {
 	if sp.CurrentPreferenceSet.Range == 0 || sp.CurrentPreferenceSet.Center.IsZero() {
 		// First launch after switching over to serializing the CurrentPreferenceSet...
-		sp.CurrentPreferenceSet = MakePreferenceSet("", sp.Facility, w)
+		sp.CurrentPreferenceSet = sp.MakePreferenceSet("", w)
 	}
 	STARSTrackHistoryColors[0] = RGB{.12, .31, .78}
 	STARSTrackHistoryColors[1] = RGB{.28, .28, .67}
@@ -859,6 +910,25 @@ func (sp *STARSPane) ResetWorld(w *World) {
 		ps.GIText[i] = ""
 	}
 	ps.RadarSiteSelected = ""
+
+	sp.ConvergingRunways = nil
+	for _, name := range SortedMapKeys(w.Airports) {
+		ap := w.Airports[name]
+		for idx, pair := range ap.ConvergingRunways {
+			sp.ConvergingRunways = append(sp.ConvergingRunways, STARSConvergingRunways{
+				ConvergingRunways: pair,
+				ApproachRegions: [2]*ApproachRegion{ap.ApproachRegions[pair.Runways[0]],
+					ap.ApproachRegions[pair.Runways[1]]},
+				Airport: name[1:], // drop the leading "K"
+				Index:   idx + 1,  // 1-based
+			})
+		}
+	}
+
+	ps.ResetCRDAState(sp.ConvergingRunways)
+	for i := range sp.PreferenceSets {
+		sp.PreferenceSets[i].ResetCRDAState(sp.ConvergingRunways)
+	}
 
 	sp.lastTrackUpdate = time.Time{} // force update
 }
@@ -1024,6 +1094,8 @@ func (sp *STARSPane) Draw(ctx *PaneContext, cb *CommandBuffer) {
 		cb.Call(vmap.CommandBuffer)
 	}
 
+	sp.drawCRDARegions(ctx, transforms, cb)
+
 	transforms.LoadWindowViewingMatrices(cb)
 
 	if ps.Brightness.Compass > 0 {
@@ -1058,7 +1130,10 @@ func (sp *STARSPane) Draw(ctx *PaneContext, cb *CommandBuffer) {
 
 	sp.drawTracks(aircraft, ctx, transforms, cb)
 	sp.drawDatablocks(aircraft, ctx, transforms, cb)
-	sp.consumeMouseEvents(ctx, transforms, cb)
+
+	ghosts := sp.getGhostAircraft(aircraft, ctx)
+	sp.drawGhosts(ghosts, ctx, transforms, cb)
+	sp.consumeMouseEvents(ctx, ghosts, transforms, cb)
 	sp.drawMouseCursor(ctx, paneExtent, transforms, cb)
 }
 
@@ -1681,7 +1756,138 @@ func (sp *STARSPane) executeSTARSCommand(cmd string, ctx *PaneContext) (status S
 		case "N":
 			// CRDA...
 			if cmd == "" {
-				// TODO: toggle CRDA processing (on by default)
+				// Toggle CRDA processing (on by default). Note that when
+				// it is disabled we still hold on to CRDARunwayPairState array so
+				// that we're back where we started if CRDA is reenabled.
+				ps.CRDADisabled = !ps.CRDADisabled
+				status.clear = true
+				return
+			} else if cmd == "*ALL" {
+				// TODO: force/unforce ghost for all, regardless of alt, etc
+			} else if n := len(cmd); n >= 5 {
+				// All commands are at least 5 characters, so check that up front
+				validAirport := func(ap string) bool {
+					for _, pair := range sp.ConvergingRunways {
+						if pair.Airport == ap {
+							return true
+						}
+					}
+					return false
+				}
+
+				if cmd[:2] == "NL" && validAirport(cmd[2:5]) {
+					// TODO: set leader line direction
+					// NL<airport><runway><1-9>
+				} else if ap := cmd[:3]; validAirport(ap) {
+					if cmd[n-1] == 'S' || cmd[n-1] == 'T' || cmd[n-1] == 'D' {
+						// enable/disable a runway pair
+						if index, err := strconv.Atoi(cmd[3 : n-1]); err == nil {
+							for i, pair := range sp.ConvergingRunways {
+								if pair.Airport == ap && pair.Index == index {
+									if cmd[n-1] == 'D' {
+										ps.CRDARunwayPairState[i].Enabled = false
+										status.clear = true
+										status.output = ap + " " + pair.getRunwaysString() + " INHIBITED"
+										return
+									} else if cmd[n-1] == 'S' {
+										ps.CRDARunwayPairState[i].Enabled = true
+										ps.CRDARunwayPairState[i].Mode = CRDAModeStagger
+										status.output = ap + " " + pair.getRunwaysString() + " ENABLED"
+										status.clear = true
+										return
+									} else if cmd[n-1] == 'T' {
+										ps.CRDARunwayPairState[i].Enabled = true
+										ps.CRDARunwayPairState[i].Mode = CRDAModeTie
+										status.output = ap + " " + pair.getRunwaysString() + " ENABLED"
+										status.clear = true
+										return
+									}
+								}
+							}
+						}
+					} else {
+						// there should be a valid runway following the
+						// airport
+						rwy := ""
+						i := 3
+						for i < len(cmd) {
+							ch := cmd[i]
+							if ch >= '0' && ch <= '9' {
+								rwy += string(ch)
+								i++
+							} else if ch == 'L' || ch == 'R' || ch == 'C' {
+								rwy += string(ch)
+								i++
+								break
+							} else {
+								break
+							}
+						}
+						extra := cmd[i:]
+
+						for i, pair := range sp.ConvergingRunways {
+							if pair.Airport != ap {
+								continue
+							}
+
+							pairState := ps.CRDARunwayPairState[i]
+							if !pairState.Enabled {
+								continue
+							}
+
+							for j, pairRunway := range pair.Runways {
+								if rwy != pairRunway {
+									continue
+								}
+
+								runwayState := &ps.CRDARunwayPairState[i].RunwayState[j]
+								switch extra {
+								case "":
+									// toggle ghosts for runway
+									runwayState.Enabled = !runwayState.Enabled
+									status.output = ap + " " + rwy + " GHOSTING " +
+										Select(runwayState.Enabled, "ENABLED", "INHIBITED")
+									if !runwayState.Enabled {
+										runwayState.DrawQualificationRegion = false
+										runwayState.DrawCourseLines = false
+									}
+									status.clear = true
+									return
+
+								case "E":
+									// enable ghosts for runway
+									runwayState.Enabled = true
+									status.output = ap + " " + rwy + " GHOSTING ENABLED"
+									status.clear = true
+									return
+
+								case "I":
+									// disable ghosts for runway
+									runwayState.Enabled = false
+									status.output = ap + " " + rwy + " GHOSTING INHIBITED"
+									// this also disables the runway's visualizations
+									runwayState.DrawQualificationRegion = false
+									runwayState.DrawCourseLines = false
+									status.clear = true
+									return
+
+								case " B":
+									runwayState.DrawQualificationRegion = !runwayState.DrawQualificationRegion
+									status.clear = true
+									return
+
+								case " L":
+									runwayState.DrawCourseLines = !runwayState.DrawCourseLines
+									status.clear = true
+									return
+								}
+							}
+						}
+					}
+				}
+
+				status.err = ErrSTARSIllegalParam
+				return
 			}
 
 		case "O":
@@ -2496,23 +2702,12 @@ func (sp *STARSPane) executeSTARSClickedCommand(ctx *PaneContext, cmd string, mo
 
 			case "N":
 				// CRDA
-				/*
-					if cmd == "" {
-						if state.isGhost {
-							state.suppressGhost = true
-						} else {
-							state.forceGhost = true
-						}
-					} else if cmd == "*" {
-						if state.isGhost {
-							// TODO: display parent track info for slewed ghost
-						} else {
-							state.forceGhost = true // ?? redundant with cmd == ""?
-						}
-					} else {
-						status.err = ErrSTARSCommandFormat
-					}
-				*/
+				if cmd == "" {
+					state.ForceGhost = !state.ForceGhost
+					status.clear = true
+				} else {
+					status.err = ErrSTARSCommandFormat
+				}
 				return
 
 			case "Q":
@@ -3004,7 +3199,7 @@ func (sp *STARSPane) DrawDCB(ctx *PaneContext, transforms ScopeTransformations, 
 		}
 
 		if STARSSelectButton("DEFAULT", STARSButtonHalfVertical, buttonScale) {
-			sp.CurrentPreferenceSet = MakePreferenceSet("", sp.Facility, ctx.world)
+			sp.CurrentPreferenceSet = sp.MakePreferenceSet("", ctx.world)
 		}
 		STARSDisabledButton("FSSTARS", STARSButtonHalfVertical, buttonScale)
 		if STARSSelectButton("RESTORE", STARSButtonHalfVertical, buttonScale) {
@@ -3064,7 +3259,7 @@ func (sp *STARSPane) DrawDCB(ctx *PaneContext, transforms ScopeTransformations, 
 		}
 
 	case DCBMenuSSAFilter:
-		STARSToggleButton("All", &ps.SSAList.Filter.All, STARSButtonHalfVertical, buttonScale)
+		STARSToggleButton("ALL", &ps.SSAList.Filter.All, STARSButtonHalfVertical, buttonScale)
 		STARSDisabledButton("WX", STARSButtonHalfVertical, buttonScale) // ?? TODO
 		STARSToggleButton("TIME", &ps.SSAList.Filter.Time, STARSButtonHalfVertical, buttonScale)
 		STARSToggleButton("ALTSTG", &ps.SSAList.Filter.Altimeter, STARSButtonHalfVertical, buttonScale)
@@ -3400,7 +3595,7 @@ func (sp *STARSPane) drawSystemLists(aircraft []*Aircraft, ctx *PaneContext, pan
 			if ps.DisableCAWarnings {
 				disabled = append(disabled, "CA")
 			}
-			if ps.DisableCRDA {
+			if ps.CRDADisabled {
 				disabled = append(disabled, "CRDA")
 			}
 			if ps.DisableMSAW {
@@ -3414,8 +3609,20 @@ func (sp *STARSPane) drawSystemLists(aircraft []*Aircraft, ctx *PaneContext, pan
 			}
 		}
 
-		if filter.All || filter.ActiveCRDAPairs {
-			// TODO
+		if (filter.All || filter.ActiveCRDAPairs) && !ps.CRDADisabled {
+			for i, crda := range ps.CRDARunwayPairState {
+				if !crda.Enabled {
+					continue
+				}
+
+				text := "*"
+				text += Select(crda.Mode == CRDAModeStagger, "S ", "T ")
+				text += sp.ConvergingRunways[i].Airport + " "
+				text += sp.ConvergingRunways[i].getRunwaysString()
+
+				pw = td.AddText(text, pw, style)
+				newline()
+			}
 		}
 	}
 
@@ -3493,8 +3700,37 @@ func (sp *STARSPane) drawSystemLists(aircraft []*Aircraft, ctx *PaneContext, pan
 	}
 
 	if ps.CRDAStatusList.Visible {
-		text := "CRDA STATUS"
-		// TODO
+		text := "CRDA STATUS\n"
+		pairIndex := 0 // reset for each new airport
+		currentAirport := ""
+		for i, crda := range ps.CRDARunwayPairState {
+			line := ""
+			if !crda.Enabled {
+				line += " "
+			} else {
+				line += Select(crda.Mode == CRDAModeStagger, "S", "T")
+			}
+
+			pair := sp.ConvergingRunways[i]
+			ap := pair.Airport
+			if ap != currentAirport {
+				currentAirport = ap
+				pairIndex = 1
+			}
+
+			line += fmt.Sprintf("%d ", pairIndex)
+			pairIndex++
+			line += ap + " "
+			line += pair.getRunwaysString()
+			if crda.Enabled {
+				for len(line) < 16 {
+					line += " "
+				}
+				ctrl := ctx.world.Controllers[ctx.world.Callsign]
+				line += ctrl.SectorId
+			}
+			text += line + "\n"
+		}
 		drawList(text, ps.CRDAStatusList.Position)
 	}
 
@@ -3556,6 +3792,46 @@ func (sp *STARSPane) drawSystemLists(aircraft []*Aircraft, ctx *PaneContext, pan
 	}
 
 	td.GenerateCommands(cb)
+}
+
+func (sp *STARSPane) drawCRDARegions(ctx *PaneContext, transforms ScopeTransformations, cb *CommandBuffer) {
+	transforms.LoadLatLongViewingMatrices(cb)
+
+	ps := sp.CurrentPreferenceSet
+	for i, state := range ps.CRDARunwayPairState {
+		if !state.Enabled {
+			continue
+		}
+		for j, rwyState := range state.RunwayState {
+			if !rwyState.Enabled {
+				continue
+			}
+
+			if rwyState.DrawCourseLines {
+				region := sp.ConvergingRunways[i].ApproachRegions[j]
+				line, _ := region.GetLateralGeometry(ctx.world.NmPerLongitude, ctx.world.MagneticVariation)
+
+				ld := GetLinesDrawBuilder()
+				cb.SetRGB(ps.Brightness.OtherTracks.ScaleRGB(STARSGhostColor))
+				ld.AddLine(line[0], line[1])
+
+				ld.GenerateCommands(cb)
+				ReturnLinesDrawBuilder(ld)
+			}
+
+			if rwyState.DrawQualificationRegion {
+				region := sp.ConvergingRunways[i].ApproachRegions[j]
+				_, quad := region.GetLateralGeometry(ctx.world.NmPerLongitude, ctx.world.MagneticVariation)
+
+				ld := GetLinesDrawBuilder()
+				cb.SetRGB(ps.Brightness.OtherTracks.ScaleRGB(STARSGhostColor))
+				ld.AddPolyline([2]float32{0, 0}, [][2]float32{quad[0], quad[1], quad[2], quad[3]})
+
+				ld.GenerateCommands(cb)
+				ReturnLinesDrawBuilder(ld)
+			}
+		}
+	}
 }
 
 func (sp *STARSPane) DatablockType(ctx *PaneContext, ac *Aircraft) DatablockType {
@@ -3636,6 +3912,90 @@ func (sp *STARSPane) drawTracks(aircraft []*Aircraft, ctx *PaneContext, transfor
 	ld.GenerateCommands(cb)
 	transforms.LoadWindowViewingMatrices(cb)
 	td.GenerateCommands(cb)
+}
+
+func (sp *STARSPane) getGhostAircraft(aircraft []*Aircraft, ctx *PaneContext) []*GhostAircraft {
+	var ghosts []*GhostAircraft
+	ps := sp.CurrentPreferenceSet
+	now := ctx.world.CurrentTime()
+
+	for i, pairState := range ps.CRDARunwayPairState {
+		if !pairState.Enabled {
+			continue
+		}
+		for j, rwyState := range pairState.RunwayState {
+			if !rwyState.Enabled {
+				continue
+			}
+
+			leaderDirection := sp.ConvergingRunways[i].LeaderDirections[j]
+			region := sp.ConvergingRunways[i].ApproachRegions[j]
+			otherRegion := sp.ConvergingRunways[i].ApproachRegions[(j+1)%2]
+
+			trackId := Select(pairState.Mode == CRDAModeStagger, sp.ConvergingRunways[i].StaggerSymbol,
+				sp.ConvergingRunways[i].TieSymbol)
+			offset := Select(pairState.Mode == CRDAModeTie, sp.ConvergingRunways[i].TieOffset, float32(0))
+
+			for _, ac := range aircraft {
+				state := sp.Aircraft[ac.Callsign]
+				if state.LostTrack(now) {
+					continue
+				}
+
+				// Create a ghost track if appropriate, add it to the
+				// ghosts slice, and draw its radar track.
+				ghost := region.MakeGhost(ac.Callsign, state.tracks[0], state.ForceGhost, offset,
+					leaderDirection, ac.NmPerLongitude, ac.MagneticVariation, otherRegion)
+				if ghost != nil {
+					ghost.TrackId = trackId
+					ghosts = append(ghosts, ghost)
+				}
+			}
+		}
+	}
+
+	return ghosts
+}
+
+func (sp *STARSPane) drawGhosts(ghosts []*GhostAircraft, ctx *PaneContext, transforms ScopeTransformations,
+	cb *CommandBuffer) {
+	td := GetTextDrawBuilder()
+	defer ReturnTextDrawBuilder(td)
+	ld := GetColoredLinesDrawBuilder()
+	defer ReturnColoredLinesDrawBuilder(ld)
+
+	ps := sp.CurrentPreferenceSet
+	color := ps.Brightness.OtherTracks.ScaleRGB(STARSGhostColor)
+	trackFont := sp.systemFont[ps.CharSize.PositionSymbols]
+	trackStyle := TextStyle{Font: trackFont, Color: color, DropShadow: true, LineSpacing: 0}
+	datablockFont := sp.systemFont[ps.CharSize.Datablocks]
+	datablockStyle := TextStyle{Font: datablockFont, Color: color, DropShadow: true, LineSpacing: 0}
+
+	for _, ghost := range ghosts {
+		// The track is just the single character..
+		pw := transforms.WindowFromLatLongP(ghost.Position)
+		td.AddTextCentered(ghost.TrackId, pw, trackStyle)
+
+		datablockText := ghost.Callsign + "\n" + fmt.Sprintf("%02d", (ghost.Groundspeed+5)/10)
+		w, h := datablockFont.BoundText(datablockText, datablockStyle.LineSpacing)
+		datablockOffset := sp.getDatablockOffset([2]float32{float32(w), float32(h)},
+			ghost.LeaderLineDirection)
+
+		// Draw datablock
+		pac := transforms.WindowFromLatLongP(ghost.Position)
+		pt := add2f(datablockOffset, pac)
+		td.AddText(datablockText, pt, datablockStyle)
+
+		// Leader line
+		v := sp.getLeaderLineVector(ghost.LeaderLineDirection)
+		p0 := add2f(pac, scale2f(normalize2f(v), float32(2+trackFont.size/2)))
+		p1 := add2f(pac, v)
+		ld.AddLine(p0, p1, color)
+	}
+
+	transforms.LoadWindowViewingMatrices(cb)
+	td.GenerateCommands(cb)
+	ld.GenerateCommands(cb)
 }
 
 func (sp *STARSPane) drawRadarTrack(tracks [10]RadarTrack, ctx *PaneContext, transforms ScopeTransformations,
@@ -4396,7 +4756,8 @@ func (sp *STARSPane) drawAirspace(ctx *PaneContext, transforms ScopeTransformati
 	td.GenerateCommands(cb)
 }
 
-func (sp *STARSPane) consumeMouseEvents(ctx *PaneContext, transforms ScopeTransformations, cb *CommandBuffer) {
+func (sp *STARSPane) consumeMouseEvents(ctx *PaneContext, ghosts []*GhostAircraft,
+	transforms ScopeTransformations, cb *CommandBuffer) {
 	if ctx.mouse == nil {
 		return
 	}

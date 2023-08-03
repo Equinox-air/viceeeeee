@@ -23,6 +23,136 @@ type Airport struct {
 
 	// runway -> (exit -> route)
 	DepartureRoutes map[string]map[string]ExitRoute `json:"departure_routes"`
+
+	ApproachRegions   map[string]*ApproachRegion `json:"approach_regions"`
+	ConvergingRunways []ConvergingRunways        `json:"converging_runways"`
+}
+
+type ConvergingRunways struct {
+	Runways                [2]string                   `json:"runways"`
+	TieSymbol              string                      `json:"tie_symbol"`
+	StaggerSymbol          string                      `json:"stagger_symbol"`
+	TieOffset              float32                     `json:"tie_offset"`
+	LeaderDirectionStrings [2]string                   `json:"leader_directions"`
+	LeaderDirections       [2]CardinalOrdinalDirection // not in JSON, set during deserialize
+}
+
+type ApproachRegion struct {
+	Runway           string  // set during deserialization
+	HeadingTolerance float32 `json:"heading_tolerance"`
+
+	ReferenceLineHeading   float32  `json:"reference_heading"`
+	ReferenceLineLength    float32  `json:"reference_length"`
+	ReferencePointAltitude float32  `json:"reference_altitude"`
+	ReferencePoint         Point2LL `json:"reference_point"`
+
+	// lateral qualification region
+	NearDistance  float32 `json:"near_distance"`
+	NearHalfWidth float32 `json:"near_half_width"`
+	FarHalfWidth  float32 `json:"far_half_width"`
+	RegionLength  float32 `json:"region_length"`
+
+	// vertical qualification region
+	DescentPointDistance   float32 `json:"descent_distance"`
+	DescentPointAltitude   float32 `json:"descent_altitude"`
+	AboveAltitudeTolerance float32 `json:"above_altitude_tolerance"`
+	BelowAltitudeTolerance float32 `json:"below_altitude_tolerance"`
+
+	ScratchpadPatterns []string `json:"scratchpad_patterns"`
+}
+
+func (ar *ApproachRegion) GetLateralGeometry(nmPerLongitude, magneticVariation float32) (line [2]Point2LL, quad [4]Point2LL) {
+	// Start with the reference line
+	hdg := radians(ar.ReferenceLineHeading + 180 - magneticVariation)
+	v := [2]float32{sin(hdg), cos(hdg)}
+	p0 := ll2nm(ar.ReferencePoint, nmPerLongitude)
+	p1 := add2f(p0, scale2f(v, ar.ReferenceLineLength))
+	line = [2]Point2LL{nm2ll(p0, nmPerLongitude), nm2ll(p1, nmPerLongitude)}
+
+	vperp := [2]float32{-v[1], v[0]}
+	pNear := add2f(p0, scale2f(v, ar.NearDistance))
+	pFar := add2f(pNear, scale2f(v, ar.RegionLength))
+	q0 := add2f(pNear, scale2f(vperp, ar.NearHalfWidth))
+	q1 := add2f(pFar, scale2f(vperp, ar.FarHalfWidth))
+	q2 := add2f(pFar, scale2f(vperp, -ar.FarHalfWidth))
+	q3 := add2f(pNear, scale2f(vperp, -ar.NearHalfWidth))
+	quad = [4]Point2LL{nm2ll(q0, nmPerLongitude), nm2ll(q1, nmPerLongitude),
+		nm2ll(q2, nmPerLongitude), nm2ll(q3, nmPerLongitude)}
+
+	return
+}
+
+type GhostAircraft struct {
+	Callsign            string
+	Position            Point2LL
+	Groundspeed         int
+	LeaderLineDirection CardinalOrdinalDirection
+	TrackId             string
+}
+
+func (ar *ApproachRegion) MakeGhost(callsign string, track RadarTrack, forceGhost bool, offset float32,
+	leaderDirection CardinalOrdinalDirection, nmPerLongitude float32, magneticVariation float32,
+	other *ApproachRegion) *GhostAircraft {
+	// Start with lateral extent since even if it's forced, the aircraft still must be inside it.
+	line, quad := ar.GetLateralGeometry(nmPerLongitude, magneticVariation)
+	if !PointInPolygon(track.Position, quad[:]) {
+		return nil
+	}
+
+	if !forceGhost {
+		// Heading must be in range
+		if headingDifference(track.Heading, ar.ReferenceLineHeading) > ar.HeadingTolerance {
+			return nil
+		}
+
+		// Check vertical extent
+		// Work in nm here...
+		l := [2][2]float32{ll2nm(line[0], nmPerLongitude), ll2nm(line[1], nmPerLongitude)}
+		pc := ClosestPointOnLine(l, ll2nm(track.Position, nmPerLongitude))
+		d := distance2f(pc, l[0])
+		if d > ar.DescentPointDistance {
+			if float32(track.Altitude) > ar.DescentPointAltitude+ar.AboveAltitudeTolerance ||
+				float32(track.Altitude) < ar.DescentPointAltitude-ar.BelowAltitudeTolerance {
+				return nil
+			}
+		} else {
+			t := (d - ar.NearDistance) / (ar.DescentPointDistance - ar.NearDistance)
+			alt := lerp(t, ar.ReferencePointAltitude, ar.DescentPointAltitude)
+			if float32(track.Altitude) > alt+ar.AboveAltitudeTolerance ||
+				float32(track.Altitude) < alt-ar.BelowAltitudeTolerance {
+				return nil
+			}
+		}
+
+		// Check scratchpad patterns: TODO
+	}
+
+	otherLine, _ := other.GetLateralGeometry(nmPerLongitude, magneticVariation)
+	ol := [2][2]float32{ll2nm(otherLine[0], nmPerLongitude), ll2nm(otherLine[1], nmPerLongitude)}
+	l := [2][2]float32{ll2nm(line[0], nmPerLongitude), ll2nm(line[1], nmPerLongitude)}
+	remap := func(pll Point2LL) Point2LL {
+		// Switch to nm for transformations to compute ghost position
+		p := ll2nm(pll, nmPerLongitude)
+		// Vector to reference point
+		v := sub2f(p, l[0])
+		// Rotate it to be oriented with respect to the other runway's reference point
+		v = rotator2f(other.ReferenceLineHeading - ar.ReferenceLineHeading)(v)
+		// Offset as appropriate
+		v = add2f(v, scale2f(normalize2f(v), offset))
+		// Back to a nm point with regards to the other reference point
+		p = add2f(ol[0], v)
+		// And lat-long for the final result
+		return nm2ll(p, nmPerLongitude)
+	}
+
+	ghost := &GhostAircraft{
+		Callsign:            callsign,
+		Position:            remap(track.Position),
+		Groundspeed:         track.Groundspeed,
+		LeaderLineDirection: leaderDirection,
+	}
+
+	return ghost
 }
 
 func (ap *Airport) PostDeserialize(sg *ScenarioGroup, e *ErrorLogger) {
@@ -135,6 +265,34 @@ func (ap *Airport) PostDeserialize(sg *ScenarioGroup, e *ErrorLogger) {
 
 		e.Pop()
 		e.Pop()
+	}
+
+	for rwy, def := range ap.ApproachRegions {
+		e.Push(rwy + " region")
+		def.Runway = rwy
+
+		idx := FindIf(ap.ConvergingRunways,
+			func(c ConvergingRunways) bool { return c.Runways[0] == rwy || c.Runways[1] == rwy })
+		if idx == -1 {
+			e.ErrorString("runway not used in \"converging_runways\"")
+		}
+
+		e.Pop()
+	}
+
+	for i, pair := range ap.ConvergingRunways {
+		for j, rwy := range pair.Runways {
+			var err error
+			ap.ConvergingRunways[i].LeaderDirections[j], err =
+				ParseCardinalOrdinalDirection(pair.LeaderDirectionStrings[j])
+			if err != nil {
+				e.Error(err)
+			}
+
+			if _, ok := ap.ApproachRegions[rwy]; !ok {
+				e.ErrorString("%s: runway not defined in \"approach_regions\"", rwy)
+			}
+		}
 	}
 }
 

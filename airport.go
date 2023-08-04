@@ -35,6 +35,7 @@ type ConvergingRunways struct {
 	TieOffset              float32                     `json:"tie_offset"`
 	LeaderDirectionStrings [2]string                   `json:"leader_directions"`
 	LeaderDirections       [2]CardinalOrdinalDirection // not in JSON, set during deserialize
+	RunwayIntersection     Point2LL                    `json:"runway_intersection"` // optional
 }
 
 type ApproachRegion struct {
@@ -59,6 +60,22 @@ type ApproachRegion struct {
 	BelowAltitudeTolerance float32 `json:"below_altitude_tolerance"`
 
 	ScratchpadPatterns []string `json:"scratchpad_patterns"`
+}
+
+// returns nm coordinates
+func (ar *ApproachRegion) NearPoint(nmPerLongitude, magneticVariation float32) [2]float32 {
+	hdg := radians(ar.ReferenceLineHeading + 180 - magneticVariation)
+	v := [2]float32{sin(hdg), cos(hdg)}
+	pref := ll2nm(ar.ReferencePoint, nmPerLongitude)
+	return add2f(pref, scale2f(v, ar.NearDistance))
+}
+
+// returns nm coordinates
+func (ar *ApproachRegion) FarPoint(nmPerLongitude, magneticVariation float32) [2]float32 {
+	hdg := radians(ar.ReferenceLineHeading + 180 - magneticVariation)
+	v := [2]float32{sin(hdg), cos(hdg)}
+	pref := ll2nm(ar.ReferencePoint, nmPerLongitude)
+	return add2f(pref, scale2f(v, ar.NearDistance+ar.RegionLength))
 }
 
 func (ar *ApproachRegion) GetLateralGeometry(nmPerLongitude, magneticVariation float32) (line [2]Point2LL, quad [4]Point2LL) {
@@ -91,8 +108,8 @@ type GhostAircraft struct {
 }
 
 func (ar *ApproachRegion) MakeGhost(callsign string, track RadarTrack, forceGhost bool, offset float32,
-	leaderDirection CardinalOrdinalDirection, nmPerLongitude float32, magneticVariation float32,
-	other *ApproachRegion) *GhostAircraft {
+	leaderDirection CardinalOrdinalDirection, runwayIntersection [2]float32, nmPerLongitude float32,
+	magneticVariation float32, other *ApproachRegion) *GhostAircraft {
 	// Start with lateral extent since even if it's forced, the aircraft still must be inside it.
 	line, quad := ar.GetLateralGeometry(nmPerLongitude, magneticVariation)
 	if !PointInPolygon(track.Position, quad[:]) {
@@ -127,20 +144,18 @@ func (ar *ApproachRegion) MakeGhost(callsign string, track RadarTrack, forceGhos
 		// Check scratchpad patterns: TODO
 	}
 
-	otherLine, _ := other.GetLateralGeometry(nmPerLongitude, magneticVariation)
-	ol := [2][2]float32{ll2nm(otherLine[0], nmPerLongitude), ll2nm(otherLine[1], nmPerLongitude)}
-	l := [2][2]float32{ll2nm(line[0], nmPerLongitude), ll2nm(line[1], nmPerLongitude)}
+	isectNm := ll2nm(runwayIntersection, nmPerLongitude)
 	remap := func(pll Point2LL) Point2LL {
 		// Switch to nm for transformations to compute ghost position
 		p := ll2nm(pll, nmPerLongitude)
 		// Vector to reference point
-		v := sub2f(p, l[0])
+		v := sub2f(p, isectNm)
 		// Rotate it to be oriented with respect to the other runway's reference point
 		v = rotator2f(other.ReferenceLineHeading - ar.ReferenceLineHeading)(v)
 		// Offset as appropriate
 		v = add2f(v, scale2f(normalize2f(v), offset))
 		// Back to a nm point with regards to the other reference point
-		p = add2f(ol[0], v)
+		p = add2f(isectNm, v)
 		// And lat-long for the final result
 		return nm2ll(p, nmPerLongitude)
 	}
@@ -281,6 +296,26 @@ func (ap *Airport) PostDeserialize(sg *ScenarioGroup, e *ErrorLogger) {
 	}
 
 	for i, pair := range ap.ConvergingRunways {
+		// If runway intersection isn't specified then the two runways
+		// should have a nearby intersection...
+		if pair.RunwayIntersection.IsZero() {
+			reg0, reg1 := ap.ApproachRegions[pair.Runways[0]], ap.ApproachRegions[pair.Runways[1]]
+			if reg0 != nil && reg1 != nil {
+				// If either is nil, we'll flag the error below, so it's fine to ignore that here.
+				r0n := reg0.NearPoint(sg.NmPerLongitude, sg.MagneticVariation)
+				r0f := reg0.FarPoint(sg.NmPerLongitude, sg.MagneticVariation)
+				r1n := reg1.NearPoint(sg.NmPerLongitude, sg.MagneticVariation)
+				r1f := reg1.FarPoint(sg.NmPerLongitude, sg.MagneticVariation)
+
+				p, ok := LineLineIntersect(r0n, r0f, r1n, r1f)
+				if !ok || distance2f(p, r0n) > 10 || distance2f(p, r1n) > 10 {
+					e.ErrorString("no \"runway_intersection\" specified and runways do not intersect within 10nm of the airport")
+				} else {
+					ap.ConvergingRunways[i].RunwayIntersection = nm2ll(p, sg.NmPerLongitude)
+				}
+			}
+		}
+
 		for j, rwy := range pair.Runways {
 			var err error
 			ap.ConvergingRunways[i].LeaderDirections[j], err =

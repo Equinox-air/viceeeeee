@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"golang.org/x/exp/slog"
 )
 
 type FAAAirport struct {
@@ -80,7 +81,7 @@ func ParseMETAR(str string) (*METAR, error) {
 
 	if s := next(); s != "RMK" {
 		// TODO: improve the METAR parser...
-		lg.Printf("Expecting RMK where %s is in METAR \"%s\"", s, str)
+		lg.Infof("Expecting RMK where %s is in METAR \"%s\"", s, str)
 	} else {
 		for s != "" {
 			s = next()
@@ -616,6 +617,32 @@ type Waypoint struct {
 	Delete              bool                 `json:"delete,omitempty"`
 }
 
+func (wp Waypoint) LogValue() slog.Value {
+	attrs := []slog.Attr{slog.String("fix", wp.Fix)}
+	if wp.AltitudeRestriction != nil {
+		attrs = append(attrs, slog.Any("altitude_restriction", wp.AltitudeRestriction))
+	}
+	if wp.Speed != 0 {
+		attrs = append(attrs, slog.Int("speed", wp.Speed))
+	}
+	if wp.Heading != 0 {
+		attrs = append(attrs, slog.Int("heading", wp.Heading))
+	}
+	if wp.ProcedureTurn != nil {
+		attrs = append(attrs, slog.Any("procedure_turn", wp.ProcedureTurn))
+	}
+	if wp.NoPT {
+		attrs = append(attrs, slog.Bool("no_pt", wp.NoPT))
+	}
+	if wp.Handoff {
+		attrs = append(attrs, slog.Bool("handoff", wp.Handoff))
+	}
+	if wp.Delete {
+		attrs = append(attrs, slog.Bool("delete", wp.Delete))
+	}
+	return slog.GroupValue(attrs...)
+}
+
 func (wp *Waypoint) ETA(p Point2LL, gs float32) time.Duration {
 	dist := nmdistance2ll(p, wp.Location)
 	eta := dist / gs
@@ -1025,7 +1052,7 @@ func InitializeStaticDatabase() *StaticDatabase {
 	go func() { db.Airlines, db.Callsigns = parseAirlines(); wg.Done() }()
 	wg.Wait()
 
-	lg.Printf("Parsed built-in databases in %v", time.Since(start))
+	lg.Infof("Parsed built-in databases in %v", time.Since(start))
 
 	return db
 }

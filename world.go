@@ -12,6 +12,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/mmp/imgui-go/v4"
+	"golang.org/x/exp/slog"
 )
 
 const initialSimSeconds = 45
@@ -461,7 +462,9 @@ func (w *World) GetUpdates(eventStream *EventStream, onErr func(error)) {
 			OnSuccess: func(any) {
 				d := time.Since(w.updateCall.IssueTime)
 				if d > 250*time.Millisecond {
-					lg.Printf("Slow world update response: %s", d)
+					lg.Warnf("Slow world update response %s", d)
+				} else {
+					lg.Infof("World update response time %s", d)
 				}
 				wu.UpdateWorld(w, eventStream)
 			},
@@ -738,6 +741,7 @@ func (w *World) CreateArrival(arrivalGroup string, arrivalAirport string, goArou
 	if err := ac.InitializeArrival(w, arrivalGroup, idx, goAround); err != nil {
 		return nil, err
 	}
+
 	return ac, nil
 }
 
@@ -800,6 +804,8 @@ func (w *World) CreateDeparture(departureAirport, runway, category string, chall
 	if err := ac.InitializeDeparture(w, ap, dep, exitRoute); err != nil {
 		return nil, nil, err
 	}
+
+	lg.Info("Spawned departure", slog.Any("aircraft", ac), slog.Any("departure", dep))
 
 	return ac, dep, nil
 }

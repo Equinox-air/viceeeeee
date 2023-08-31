@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/cpu"
+	"golang.org/x/exp/slog"
 )
 
 const ViceRPCVersion = 5
@@ -212,17 +213,23 @@ type SimManager struct {
 	controllerTokenToSim map[string]*Sim
 	mu                   sync.Mutex
 	startTime            time.Time
+	lg                   *Logger
 }
 
 func NewSimManager(scenarioGroups map[string]*ScenarioGroup,
-	simConfigurations map[string]*SimConfiguration) *SimManager {
-	return &SimManager{
+	simConfigurations map[string]*SimConfiguration, lg *Logger) *SimManager {
+	sm := &SimManager{
 		scenarioGroups:       scenarioGroups,
 		configs:              simConfigurations,
 		activeSims:           make(map[string]*Sim),
 		controllerTokenToSim: make(map[string]*Sim),
 		startTime:            time.Now(),
+		lg:                   lg,
 	}
+
+	go sm.LogStats()
+
+	return sm
 }
 
 type NewSimResult struct {
@@ -232,7 +239,7 @@ type NewSimResult struct {
 
 func (sm *SimManager) New(config *NewSimConfiguration, result *NewSimResult) error {
 	if config.NewSimType == NewSimCreateLocal || config.NewSimType == NewSimCreateRemote {
-		sim := NewSim(*config, sm.scenarioGroups, config.NewSimType == NewSimCreateLocal)
+		sim := NewSim(*config, sm.scenarioGroups, config.NewSimType == NewSimCreateLocal, sm.lg)
 		sim.prespawn()
 		return sm.Add(sim, result)
 	} else {
@@ -263,10 +270,7 @@ func (sm *SimManager) New(config *NewSimConfiguration, result *NewSimResult) err
 }
 
 func (sm *SimManager) Add(sim *Sim, result *NewSimResult) error {
-	if err := sim.Activate(); err != nil {
-		lg.Printf("%s: activate fail: %v", sim.Name, err)
-		return err
-	}
+	sim.Activate(sm.lg)
 
 	sm.mu.Lock()
 
@@ -276,7 +280,7 @@ func (sm *SimManager) Add(sim *Sim, result *NewSimResult) error {
 		return ErrDuplicateSimName
 	}
 
-	lg.Printf("%s: starting new sim", sim.Name)
+	lg.Infof("%s: adding sim", sim.Name)
 	sm.activeSims[sim.Name] = sim
 
 	sm.mu.Unlock()
@@ -298,7 +302,7 @@ func (sm *SimManager) Add(sim *Sim, result *NewSimResult) error {
 			time.Sleep(100 * time.Millisecond)
 		}
 
-		lg.Printf("%s: terminating sim after %s idle", sim.Name, sim.IdleTime())
+		lg.Infof("%s: terminating sim after %s idle", sim.Name, sim.IdleTime())
 		sm.mu.Lock()
 		delete(sm.activeSims, sim.Name)
 		// FIXME: these don't get cleaned up during Sim SignOff()
@@ -428,6 +432,16 @@ type SimStatus struct {
 	TotalArrivals   int
 }
 
+func (ss SimStatus) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.String("name", ss.Name),
+		slog.String("config", ss.Config),
+		slog.Duration("idle", ss.IdleTime),
+		slog.String("controllers", ss.Controllers),
+		slog.Int("departures", ss.TotalDepartures),
+		slog.Int("arrivals", ss.TotalArrivals))
+}
+
 func (sm *SimManager) GetSimStatus() []SimStatus {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
@@ -456,6 +470,16 @@ func (sm *SimManager) GetSimStatus() []SimStatus {
 	return ss
 }
 
+func (sm *SimManager) LogStats() {
+	for {
+		sm.mu.Lock()
+		lg.Infof("SimManager: %d Sims active", len(sm.activeSims))
+		sm.mu.Unlock()
+
+		time.Sleep(1 * time.Minute)
+	}
+}
+
 type SimBroadcastMessage struct {
 	Password string
 	Message  string
@@ -475,7 +499,7 @@ func (sm *SimManager) Broadcast(m *SimBroadcastMessage, _ *struct{}) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
-	lg.Printf("Broadcasting message: %s", m.Message)
+	lg.Infof("Broadcasting message: %s", m.Message)
 
 	for _, sim := range sm.activeSims {
 		sim.mu.Lock()
@@ -1073,7 +1097,7 @@ func TryConnectRemoteServer(hostname string) (chan *SimServer, error) {
 				err: err,
 			}
 		} else {
-			lg.Printf("%s: server returned configuration in %s", hostname, time.Since(start))
+			lg.Infof("%s: server returned configuration in %s", hostname, time.Since(start))
 			ch <- &SimServer{
 				name:        "Network (Multi-controller)",
 				client:      client,
@@ -1123,13 +1147,13 @@ func runServer(l net.Listener, isLocal bool) chan map[string]*SimConfiguration {
 		var e ErrorLogger
 		scenarioGroups, simConfigurations := LoadScenarioGroups(&e)
 		if e.HaveErrors() {
-			e.PrintErrors()
+			e.PrintErrors(lg)
 			os.Exit(1)
 		}
 
 		server := rpc.NewServer()
 
-		sm := NewSimManager(scenarioGroups, simConfigurations)
+		sm := NewSimManager(scenarioGroups, simConfigurations, lg)
 		if err := server.Register(sm); err != nil {
 			lg.Errorf("%v", err)
 			os.Exit(1)
@@ -1143,11 +1167,11 @@ func runServer(l net.Listener, isLocal bool) chan map[string]*SimConfiguration {
 
 		ch <- simConfigurations
 
-		lg.Printf("Listening on %+v", l)
+		lg.Infof("Listening on %+v", l)
 
 		for {
 			conn, err := l.Accept()
-			lg.Printf("%s: new connection", conn.RemoteAddr())
+			lg.Infof("%s: new connection", conn.RemoteAddr())
 			if err != nil {
 				lg.Errorf("Accept error: %v", err)
 			} else if cc, err := MakeCompressedConn(MakeLoggingConn(conn)); err != nil {
@@ -1179,18 +1203,21 @@ func launchHTTPStats(sm *SimManager) {
 	launchTime = time.Now()
 	http.HandleFunc("/sup", func(w http.ResponseWriter, r *http.Request) {
 		statsHandler(w, r, sm)
+		lg.Infof("%s: served stats request", r.URL.String())
 	})
 	http.HandleFunc("/vice-logs/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		if f, err := os.Open("." + r.URL.String()); err == nil {
-			if _, err := io.Copy(w, f); err != nil {
+			if n, err := io.Copy(w, f); err != nil {
 				lg.Errorf("%s: %v", r.URL.String(), err)
+			} else {
+				lg.Infof("%s: served %d bytes", r.URL.String(), n)
 			}
 		}
 	})
 
 	if err := http.ListenAndServe(":6502", nil); err != nil {
-		lg.Printf("Failed to start HTTP server for stats: %v\n", err)
+		lg.Errorf("Failed to start HTTP server for stats: %v\n", err)
 	}
 }
 

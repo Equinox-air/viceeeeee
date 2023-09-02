@@ -51,9 +51,8 @@ var (
 	// Command-line options are only used for developer features.
 	cpuprofile        = flag.String("cpuprofile", "", "write CPU profile to file")
 	memprofile        = flag.String("memprofile", "", "write memory profile to this file")
-	devmode           = flag.Bool("devmode", false, "developer mode")
+	logLevel          = flag.String("loglevel", "info", "logging level: debug, info, warn, error")
 	lintScenarios     = flag.Bool("lint", false, "check the validity of the built-in scenarios")
-	logRPC            = flag.Bool("logrpc", false, "log RPC calls")
 	server            = flag.Bool("server", false, "run vice scenario server")
 	serverAddress     = flag.String("serverip", ViceServerAddress, "IP address of vice multi-controller server")
 	scenarioFilename  = flag.String("scenario", "", "filename of JSON file with a scenario definition")
@@ -74,11 +73,6 @@ func init() {
 func main() {
 	flag.Parse()
 
-	if *logRPC && !*devmode {
-		fmt.Printf("vice: must provide -devmode with -logrpc\n")
-		os.Exit(1)
-	}
-
 	rand.Seed(time.Now().UnixNano())
 
 	// Common initialization for both client and server
@@ -89,7 +83,7 @@ func main() {
 	}
 
 	// Initialize the logging system first and foremost.
-	lg = NewLogger(*server, *devmode)
+	lg = NewLogger(*server, *logLevel)
 
 	if *cpuprofile != "" {
 		if f, err := os.Create(*cpuprofile); err != nil {
@@ -130,7 +124,7 @@ func main() {
 		lastRemoteServerAttempt := time.Now()
 		remoteSimServerChan, err := TryConnectRemoteServer(*serverAddress)
 		if err != nil {
-			lg.Errorf("error connecting to remote server: %v", err)
+			lg.Warnf("error connecting to remote server: %v", err)
 		}
 
 		var stats Stats
@@ -139,7 +133,7 @@ func main() {
 		// Catch any panics so that we can put up a dialog box and hopefully
 		// get a bug report.
 		var context *imgui.Context
-		if !*devmode {
+		if os.Getenv("DELVE_GOVERSION") == "" { // hack: don't catch panics when debugging..
 			defer func() {
 				if err := recover(); err != nil {
 					lg.Error("Caught panic!", slog.String("stack", string(debug.Stack())))
@@ -320,8 +314,8 @@ func main() {
 			platform.PostRender()
 
 			// Periodically log current memory use, etc.
-			if *devmode && frameIndex%18000 == 0 {
-				lg.Info("performance", slog.Any("stats", stats))
+			if frameIndex%18000 == 0 {
+				lg.Debug("performance", slog.Any("stats", stats))
 			}
 			frameIndex++
 

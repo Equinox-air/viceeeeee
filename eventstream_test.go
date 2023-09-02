@@ -37,7 +37,7 @@ func TestEventStream(t *testing.T) {
 }
 
 func TestEventStreamCompact(t *testing.T) {
-	lg = NewLogger(false, true)
+	lg = NewLogger(false, "debug")
 	es := NewEventStream()
 
 	// multiple consumers, at different offsets

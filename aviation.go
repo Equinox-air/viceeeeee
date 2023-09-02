@@ -81,7 +81,7 @@ func ParseMETAR(str string) (*METAR, error) {
 
 	if s := next(); s != "RMK" {
 		// TODO: improve the METAR parser...
-		lg.Infof("Expecting RMK where %s is in METAR \"%s\"", s, str)
+		lg.Warnf("Expecting RMK where %s is in METAR \"%s\"", s, str)
 	} else {
 		for s != "" {
 			s = next()
@@ -1081,8 +1081,10 @@ func mungeCSV(filename string, raw string, fields []string, callback func([]stri
 				}
 			}
 			if len(fieldIndices) != fi+1 {
-				lg.Errorf("%s: did not field header for requested field \"%s\"", filename, f)
-				lg.Errorf("options: %+v", header)
+				lg.Error("did not find requested field header",
+					slog.String("filename", filename),
+					slog.String("field", f),
+					slog.Any("header", header))
 			}
 		}
 	}
@@ -1189,12 +1191,13 @@ func parseAircraftPerformance() map[string]AircraftPerformance {
 		Aircraft []AircraftPerformance `json:"aircraft"`
 	}
 	if err := json.Unmarshal(openscopeAircraft, &acStruct); err != nil {
-		lg.Errorf("%v", err)
+		lg.Errorf("error in JSON unmarshal of openscope-aircraft: %v", err)
 	}
 
 	ap := make(map[string]AircraftPerformance)
 	for _, ac := range acStruct.Aircraft {
 		ap[ac.ICAO] = ac
+
 		if ac.Speed.V2 != 0 && ac.Speed.V2 > 1.5*ac.Speed.Min {
 			lg.Errorf("%s: aircraft V2 %.0f seems suspiciously high (vs min %.01f)",
 				ac.ICAO, ac.Speed.V2, ac.Speed.Min)
@@ -1211,7 +1214,7 @@ func parseAirlines() (map[string]Airline, map[string]string) {
 		Airlines []Airline `json:"airlines"`
 	}
 	if err := json.Unmarshal([]byte(openscopeAirlines), &alStruct); err != nil {
-		lg.Errorf("%v", err)
+		lg.Errorf("error in JSON unmarshal of openscope-airlines: %v", err)
 	}
 
 	airlines := make(map[string]Airline)

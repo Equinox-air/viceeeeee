@@ -272,7 +272,7 @@ func (c *NewSimConfiguration) updateRemoteSims() {
 				remoteServer.runningSims = rs
 			},
 			OnErr: func(e error) {
-				lg.Errorf("GetRunningSims: %v", e)
+				lg.Errorf("GetRunningSims error: %v", e)
 
 				// nil out the server if we've lost the connection; the
 				// main loop will attempt to reconnect.
@@ -990,7 +990,7 @@ func (s *Sim) GetWorldUpdate(token string, update *SimWorldUpdate) error {
 		ctrl.lastUpdateCall = time.Now()
 		if ctrl.warnedNoUpdateCalls {
 			ctrl.warnedNoUpdateCalls = false
-			s.lg.Errorf("%s: connection re-established", ctrl.Callsign)
+			s.lg.Warnf("%s: connection re-established", ctrl.Callsign)
 			s.eventStream.Post(Event{
 				Type:    StatusMessageEvent,
 				Message: ctrl.Callsign + " is back online.",
@@ -1130,8 +1130,9 @@ func (s *Sim) updateState() {
 				ToController:   ac.HandoffTrackController,
 				Callsign:       ac.Callsign,
 			})
-			s.lg.Infof("%s: automatic accept of handoff from %s to %s", ac.Callsign,
-				ac.TrackingController, ac.HandoffTrackController)
+			s.lg.Info("automatic handoff accept", slog.String("callsign", ac.Callsign),
+				slog.String("from", ac.TrackingController),
+				slog.String("to", ac.HandoffTrackController))
 
 			ac.TrackingController = ac.HandoffTrackController
 			ac.HandoffTrackController = ""
@@ -1148,7 +1149,7 @@ func (s *Sim) updateState() {
 			// Cull departures that are far from the airport.
 			if ap := s.World.GetAirport(ac.FlightPlan.DepartureAirport); ap != nil && ac.IsDeparture() {
 				if nmdistance2ll(ac.Position(), ap.Location) > 200 {
-					s.lg.Infof("%s: culled far-away departure", callsign)
+					s.lg.Info("culled far-away departure", slog.String("callsign", callsign))
 					delete(s.World.Aircraft, callsign)
 				}
 			}
@@ -1197,8 +1198,9 @@ func (s *Sim) updateState() {
 					ac.HandoffTrackController = s.World.PrimaryController
 				}
 
-				s.lg.Infof("%s: resolved handoff: %s -> %s", ac.Callsign, ac.ControllingController,
-					ac.HandoffTrackController)
+				s.lg.Info("resolved handoff", slog.String("callsign", ac.Callsign),
+					slog.String("from", ac.ControllingController),
+					slog.String("to", ac.HandoffTrackController))
 
 				s.eventStream.Post(Event{
 					Type:           OfferedHandoffEvent,
@@ -1241,7 +1243,7 @@ func (s *Sim) getDepartureController(ac *Aircraft) string {
 }
 
 func (s *Sim) prespawn() {
-	s.lg.Infof("starting aircraft prespawn")
+	s.lg.Info("starting aircraft prespawn")
 
 	// Prime the pump before the user gets involved
 	t := time.Now().Add(-(initialSimSeconds + 1) * time.Second)
@@ -1256,7 +1258,7 @@ func (s *Sim) prespawn() {
 	s.World.SimTime = s.SimTime
 	s.lastUpdateTime = time.Now()
 
-	s.lg.Infof("finished aircraft prespawn")
+	s.lg.Info("finished aircraft prespawn")
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -1336,10 +1338,9 @@ func (s *Sim) spawnAircraft() {
 
 			goAround := rand.Float32() < s.LaunchConfig.GoAroundRate
 			if ac, err := s.World.CreateArrival(group, arrivalAirport, goAround); err != nil {
-				s.lg.Errorf("CreateArrival: %v", err)
+				s.lg.Error("CreateArrival error: %v", err)
 			} else if ac != nil {
 				s.launchAircraftNoLock(*ac)
-				s.lg.Info("spawned arrival", slog.Any("aircraft", ac))
 				s.NextArrivalSpawn[group] = now.Add(randomWait(rateSum))
 			}
 		}
@@ -1363,12 +1364,11 @@ func (s *Sim) spawnAircraft() {
 			ac, dep, err := s.World.CreateDeparture(airport, runway, category,
 				s.LaunchConfig.DepartureChallenge, prevDep)
 			if err != nil {
-				s.lg.Errorf("CreateDeparture: %v", err)
+				s.lg.Errorf("CreateDeparture error: %v", err)
 			} else {
 				s.lastDeparture[airport][runway][category] = dep
 				s.lg.Infof("%s/%s/%s: launch departure", airport, runway, category)
 				s.launchAircraftNoLock(*ac)
-				s.lg.Info("spawned departure", slog.Any("aircraft", ac))
 				s.NextDepartureSpawn[airport][runway] = now.Add(randomWait(rateSum))
 			}
 		}
@@ -1469,7 +1469,7 @@ func (s *Sim) LaunchAircraft(ac Aircraft) {
 // Assumes the lock is already held (as is the case e.g. for automatic spawning...)
 func (s *Sim) launchAircraftNoLock(ac Aircraft) {
 	if _, ok := s.World.Aircraft[ac.Callsign]; ok {
-		s.lg.Errorf("%s: already have an aircraft with that callsign!", ac.Callsign)
+		s.lg.Warn("already have an aircraft with that callsign!", slog.String("callsign", ac.Callsign))
 		return
 	}
 
@@ -1479,10 +1479,10 @@ func (s *Sim) launchAircraftNoLock(ac Aircraft) {
 
 	if ac.IsDeparture() {
 		s.TotalDepartures++
-		s.lg.Info("launched departure", slog.Any("aircraft", ac))
+		s.lg.Info("launched departure", slog.String("callsign", ac.Callsign), slog.Any("aircraft", ac))
 	} else {
 		s.TotalArrivals++
-		s.lg.Info("launched arrival", slog.Any("aircraft", ac))
+		s.lg.Info("launched arrival", slog.String("callsign", ac.Callsign), slog.Any("aircraft", ac))
 	}
 }
 
@@ -1500,7 +1500,7 @@ func (s *Sim) dispatchCommand(token string, callsign string,
 
 		ctrl := s.World.GetController(sc.Callsign)
 		if ctrl == nil {
-			s.lg.Error(sc.Callsign+": couldn't get controller",
+			s.lg.Error("controller unknown", slog.String("controller", sc.Callsign),
 				slog.Any("world_controllers", s.World.Controllers))
 			return ErrNoController
 		}
@@ -1669,7 +1669,8 @@ func (s *Sim) HandoffControl(token, callsign string) error {
 			// Go ahead and climb departures the rest of the way and send
 			// them direct to their first fix (if they aren't already).
 			if ac.IsDeparture() {
-				lg.Infof("%s: climbing to %d", ac.Callsign, ac.FlightPlan.Altitude)
+				s.lg.Debug("departing on course", slog.String("callsign", ac.Callsign),
+					slog.Int("final_altitude", ac.FlightPlan.Altitude))
 				ac.DepartOnCourse()
 			}
 
@@ -2013,7 +2014,7 @@ func (s *Sim) DeleteAircraft(token, callsign string) error {
 				s.TotalArrivals--
 			}
 
-			lg.Infof("%s: deleting aircraft", ac.Callsign)
+			s.lg.Info("deleting aircraft", slog.String("callsign", ac.Callsign))
 			delete(s.World.Aircraft, ac.Callsign)
 			return nil
 		})

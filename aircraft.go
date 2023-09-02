@@ -151,7 +151,7 @@ func (ac *Aircraft) Update(w *World, ep EventPoster, simlg *Logger) {
 
 	if ac.GoAroundDistance != nil {
 		if d, err := ac.Nav.finalApproachDistance(); err == nil && d < *ac.GoAroundDistance {
-			lg.Infof("randomly going around")
+			lg.Info("randomly going around")
 			rt := ac.GoAround()
 			PostRadioEvents(ac.Callsign, rt, ep)
 
@@ -251,8 +251,10 @@ func (ac *Aircraft) CrossFixAt(fix string, ar *AltitudeRestriction, speed int) [
 
 func (ac *Aircraft) getArrival(w *World) (*Arrival, error) {
 	if arrivals, ok := w.ArrivalGroups[ac.ArrivalGroup]; !ok || ac.ArrivalGroupIndex >= len(arrivals) {
-		lg.Errorf("%s: invalid arrival group %s or index %d", ac.Callsign, ac.ArrivalGroup,
-			ac.ArrivalGroupIndex)
+		lg.Error("invalid arrival group or index",
+			slog.String("callsign", ac.Callsign),
+			slog.String("arrival_group", ac.ArrivalGroup),
+			slog.Int("index", ac.ArrivalGroupIndex))
 		return nil, ErrNoValidArrivalFound
 	} else {
 		return &arrivals[ac.ArrivalGroupIndex], nil

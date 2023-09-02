@@ -87,24 +87,19 @@ func (e *EventsSubscription) Unsubscribe() {
 // event is arbitrary; it's up to the EventStream users to establish
 // conventions.
 func (e *EventStream) Post(event Event) {
-	if false && *devmode {
-		lg.Infof("Post %s; %d subscribers stream length %d, cap %d",
-			event.String(), len(e.subscriptions), len(e.events), cap(e.events))
-	}
-
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	lg.Info("posted event", slog.Any("event", event))
+	lg.Debug("posted event", slog.Any("event", event))
 
 	// Ignore the event if no one's paying attention.
 	if len(e.subscriptions) > 0 {
-		if len(e.events)+1 == cap(e.events) && *devmode && lg != nil {
+		if len(e.events)+1 == cap(e.events) {
 			// Dump the state of things if the array's about to grow; in
 			// general we expect it to pretty quickly reach steady state
 			// with just a handful of entries.
 			e.mu.Unlock()
-			lg.Info("current event stream", slog.Any("event_stream", e))
+			lg.Debug("current event stream", slog.Any("event_stream", e))
 			e.mu.Lock()
 		}
 
@@ -147,7 +142,7 @@ func (e *EventStream) compact() {
 	}
 
 	if len(e.events) > 1000 && lg != nil {
-		lg.Errorf("EventStream length %d", len(e.events))
+		lg.Warnf("EventStream length %d", len(e.events))
 	}
 
 	if minOffset > cap(e.events)/2 {

@@ -227,8 +227,6 @@ func NewSimManager(scenarioGroups map[string]*ScenarioGroup,
 		lg:                   lg,
 	}
 
-	go sm.LogStats()
-
 	return sm
 }
 
@@ -470,16 +468,6 @@ func (sm *SimManager) GetSimStatus() []SimStatus {
 	return ss
 }
 
-func (sm *SimManager) LogStats() {
-	for {
-		sm.mu.Lock()
-		lg.Infof("SimManager: %d Sims active", len(sm.activeSims))
-		sm.mu.Unlock()
-
-		time.Sleep(1 * time.Minute)
-	}
-}
-
 type SimBroadcastMessage struct {
 	Password string
 	Message  string
@@ -517,7 +505,7 @@ func (sm *SimManager) Broadcast(m *SimBroadcastMessage, _ *struct{}) error {
 func BroadcastMessage(hostname, msg, password string) {
 	client, err := getClient(hostname)
 	if err != nil {
-		lg.Errorf("%v", err)
+		lg.Errorf("unable to get client for broadcast: %v", err)
 		return
 	}
 
@@ -527,7 +515,7 @@ func BroadcastMessage(hostname, msg, password string) {
 	}, nil)
 
 	if err != nil {
-		lg.Errorf("%v", err)
+		lg.Errorf("broadcast error: %v", err)
 	}
 }
 
@@ -750,6 +738,8 @@ func (sd *SimDispatcher) RunAircraftCommands(cmds *AircraftCommandsArgs, _ *stru
 	}
 
 	commands := strings.Fields(cmds.Commands)
+	lg.Info("entered control commands", slog.String("callsign", callsign),
+		slog.Any("commands", commands))
 
 	for i, command := range commands {
 		switch command[0] {
@@ -1076,9 +1066,7 @@ func getClient(hostname string) (*RPCClient, error) {
 	}
 
 	codec := MakeGOBClientCodec(cc)
-	if *logRPC {
-		codec = MakeLoggingClientCodec(hostname, codec)
-	}
+	codec = MakeLoggingClientCodec(hostname, codec)
 	return &RPCClient{rpc.NewClientWithCodec(codec)}, nil
 }
 
@@ -1097,7 +1085,7 @@ func TryConnectRemoteServer(hostname string) (chan *SimServer, error) {
 				err: err,
 			}
 		} else {
-			lg.Infof("%s: server returned configuration in %s", hostname, time.Since(start))
+			lg.Debugf("%s: server returned configuration in %s", hostname, time.Since(start))
 			ch <- &SimServer{
 				name:        "Network (Multi-controller)",
 				client:      client,
@@ -1126,7 +1114,7 @@ func LaunchLocalSimServer() (chan *SimServer, error) {
 
 		client, err := getClient(fmt.Sprintf("localhost:%d", port))
 		if err != nil {
-			lg.Errorf("%v", err)
+			lg.Errorf("unable to get client: %v", err)
 			os.Exit(1)
 		}
 
@@ -1155,11 +1143,11 @@ func runServer(l net.Listener, isLocal bool) chan map[string]*SimConfiguration {
 
 		sm := NewSimManager(scenarioGroups, simConfigurations, lg)
 		if err := server.Register(sm); err != nil {
-			lg.Errorf("%v", err)
+			lg.Errorf("unable to register SimManager: %v", err)
 			os.Exit(1)
 		}
 		if err := server.RegisterName("Sim", &SimDispatcher{sm: sm}); err != nil {
-			lg.Errorf("%v", err)
+			lg.Errorf("unable to register SimDispatcher: %v", err)
 			os.Exit(1)
 		}
 
@@ -1178,9 +1166,7 @@ func runServer(l net.Listener, isLocal bool) chan map[string]*SimConfiguration {
 				lg.Errorf("MakeCompressedConn: %v", err)
 			} else {
 				codec := MakeGOBServerCodec(cc)
-				if *logRPC {
-					codec = MakeLoggingServerCodec(conn.RemoteAddr().String(), codec)
-				}
+				codec = MakeLoggingServerCodec(conn.RemoteAddr().String(), codec)
 				go server.ServeCodec(codec)
 			}
 		}

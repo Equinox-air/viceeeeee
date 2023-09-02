@@ -22,11 +22,10 @@ import (
 // debugging and verbose output may both be suppressed independently.
 type Logger struct {
 	*slog.Logger
-	lvl   *slog.LevelVar
 	start time.Time
 }
 
-func NewLogger(server bool, printToStderr bool) *Logger {
+func NewLogger(server bool, level string) *Logger {
 	var w io.Writer
 
 	if server {
@@ -48,16 +47,28 @@ func NewLogger(server bool, printToStderr bool) *Logger {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s: %v", fn, err)
 			w = os.Stderr
-		} else if printToStderr {
+		} else {
 			w = io.MultiWriter(w, os.Stderr)
 		}
 	}
 
-	lvl := new(slog.LevelVar)
+	lvl := slog.LevelInfo
+	switch level {
+	case "debug":
+		lvl = slog.LevelDebug
+	case "info":
+		lvl = slog.LevelInfo
+	case "warn":
+		lvl = slog.LevelWarn
+	case "error":
+		lvl = slog.LevelError
+	default:
+		fmt.Fprintf(os.Stderr, "%s: invalid log level", level)
+	}
+
 	h := slog.NewJSONHandler(w, &slog.HandlerOptions{Level: lvl})
 	l := &Logger{
 		Logger: slog.New(h),
-		lvl:    lvl,
 		start:  time.Now(),
 	}
 
@@ -114,71 +125,71 @@ func callstack() slog.Attr {
 	return slog.Group("callstack", s...)
 }
 
-// Debug wraps slog.Debug to add call stack information (and similarly for
-// Info, Error, and Warn below). Note that we do not wrap the entire slog
-// logging interface, so, for example, InfoContext or Log do not have
-// callstacks included.
+// We wrap the logging methods used elsewhere in vice to allow a nil
+// *Logger, in which case debug and info methods are discarded (warnings
+// and errors still go through to slog.)
 func (l *Logger) Debug(msg string, args ...any) {
-	if l == nil {
-		return
+	if l != nil {
+		l.Logger.Debug(msg, args...)
 	}
-	args = append([]any{callstack()}, args...)
-	l.Logger.Debug(msg, args...)
 }
 
 // Debugf is a convenience wrapper that logs just a message and allows
 // printf-style formatting of the provided args.
 func (l *Logger) Debugf(msg string, args ...any) {
-	if l == nil {
-		return
+	if l != nil {
+		l.Logger.Debug(fmt.Sprintf(msg, args...), callstack())
 	}
-	l.Logger.Debug(fmt.Sprintf(msg, args...), callstack())
 }
 
 func (l *Logger) Info(msg string, args ...any) {
-	if l == nil {
-		return
+	if l != nil {
+		l.Logger.Info(msg, args...)
 	}
-	args = append([]any{callstack()}, args...)
-	l.Logger.Info(msg, args...)
 }
 
 func (l *Logger) Infof(msg string, args ...any) {
-	if l == nil {
-		return
+	if l != nil {
+		l.Logger.Info(fmt.Sprintf(msg, args...))
 	}
-	l.Logger.Info(fmt.Sprintf(msg, args...), callstack())
 }
 
-func (l *Logger) Error(msg string, args ...any) {
-	if l == nil {
-		return
-	}
-	args = append([]any{callstack()}, args...)
-	l.Logger.Error(msg, args...)
-}
-
-func (l *Logger) Errorf(msg string, args ...any) {
-	if l == nil {
-		return
-	}
-	l.Logger.Error(fmt.Sprintf(msg, args...), callstack())
-}
-
+// Warn wraps slog.Warn to add call stack information (and similarly for
+// Warnf and Error[f] below). Note that we do not wrap the entire slog
+// logging interface, so, for example, WarnContext and Log do not have
+// callstacks included.
 func (l *Logger) Warn(msg string, args ...any) {
-	if l == nil {
-		return
-	}
 	args = append([]any{callstack()}, args...)
-	l.Logger.Warn(msg, args...)
+	if l == nil {
+		slog.Warn(msg, args...)
+	} else {
+		l.Logger.Warn(msg, args...)
+	}
 }
 
 func (l *Logger) Warnf(msg string, args ...any) {
 	if l == nil {
 		slog.Warn(fmt.Sprintf(msg, args...), callstack())
-		return
+	} else {
+		l.Logger.Warn(fmt.Sprintf(msg, args...), callstack())
 	}
-	l.Logger.Warn(fmt.Sprintf(msg, args...), callstack())
+}
+
+func (l *Logger) Error(msg string, args ...any) {
+	args = append([]any{callstack()}, args...)
+	if l == nil {
+		slog.Error(msg, args...)
+	} else {
+		l.Logger.Error(msg, args...)
+	}
+}
+
+func (l *Logger) Errorf(msg string, args ...any) {
+	if l == nil {
+		slog.Error(fmt.Sprintf(msg, args...), callstack())
+	} else {
+		l.Logger.Error(fmt.Sprintf(msg, args...), callstack())
+	}
 }
 
 // Stats collects a few statistics related to rendering and time spent in

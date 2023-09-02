@@ -171,7 +171,7 @@ func makeNav(w *World, fp FlightPlan, perf AircraftPerformance, wp []Waypoint) *
 	}
 
 	// Filter out airways...
-	nav.Waypoints = FilterSlice(nav.Waypoints[1:],
+	nav.Waypoints = FilterSlice(nav.Waypoints,
 		func(wp Waypoint) bool { return !wp.Location.IsZero() })
 
 	if ap, ok := database.Airports[fp.DepartureAirport]; !ok {
@@ -732,7 +732,8 @@ func (nav *Nav) TargetAltitude(lg *Logger) (alt, rate float32) {
 			nav.Altitude.Assigned = nav.Altitude.AfterSpeed
 			nav.Altitude.AfterSpeed = nil
 			nav.Altitude.AfterSpeedSpeed = nil
-			lg.Infof("alt: reached target speed; now going for altitude %.0f", *nav.Altitude.Assigned)
+			lg.Infof("alt: reached target speed %.0f; now going for altitude %.0f",
+				nav.FlightState.IAS, *nav.Altitude.Assigned)
 		}
 	}
 
@@ -968,7 +969,7 @@ func (nav *Nav) TargetSpeed(lg *Logger) (float32, float32) {
 		if nav.FlightState.Altitude == *nav.Speed.AfterAltitudeAltitude {
 			// Reached altitude, now go for speed
 			lg.Infof("speed: reached altitude %.0f; now going for speed %.0f",
-				*nav.Speed.AfterAltitudeAltitude, *nav.Speed.Assigned)
+				*nav.Speed.AfterAltitudeAltitude, *nav.Speed.AfterAltitude)
 			nav.Speed.Assigned = nav.Speed.AfterAltitude
 			nav.Speed.AfterAltitude = nil
 			nav.Speed.AfterAltitudeAltitude = nil

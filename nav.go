@@ -655,7 +655,6 @@ func (nav *Nav) LocalizerHeading(wind WindModel, lg *Logger) (heading float32, t
 
 	case TurningToJoin:
 		// we've turned to intercept. have we intercepted?
-		ap := nav.Approach.Assigned
 		loc := ap.Line()
 		dist := PointLineDistance(ll2nm(nav.FlightState.Position, nav.FlightState.NmPerLongitude),
 			ll2nm(loc[0], nav.FlightState.NmPerLongitude), ll2nm(loc[1], nav.FlightState.NmPerLongitude))
@@ -1697,6 +1696,9 @@ func (nav *Nav) AtFixCleared(fix, id string) string {
 	}
 
 	ap := nav.Approach.Assigned
+	if ap == nil {
+		return "unable. We were never told to expect an approach"
+	}
 	if nav.Approach.AssignedId != id {
 		return "unable. We were told to expect the " + ap.FullName + " approach..."
 	}
@@ -1767,6 +1769,9 @@ func (nav *Nav) prepareForApproach(airport string, straightIn bool, arr *Arrival
 func (nav *Nav) clearedApproach(airport string, id string, straightIn bool, arr *Arrival,
 	w *World) (string, error) {
 	ap := nav.Approach.Assigned
+	if ap == nil {
+		return "unable. We haven't been told to expect an approach", ErrClearedForUnexpectedApproach
+	}
 	if nav.Approach.AssignedId != id {
 		return "unable. We were told to expect the " + ap.FullName + " approach...",
 			ErrClearedForUnexpectedApproach

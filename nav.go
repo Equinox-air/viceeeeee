@@ -472,7 +472,6 @@ func (nav *Nav) updateHeading(wind WindModel, lg *Logger) {
 	}
 	if headingDifference(nav.FlightState.Heading, targetHeading) < 1 {
 		nav.FlightState.Heading = targetHeading
-		lg.Debug("reached target heading %.0f", targetHeading)
 		return
 	}
 	lg.Debugf("turning for heading %.0f", targetHeading)

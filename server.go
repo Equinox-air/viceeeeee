@@ -738,8 +738,6 @@ func (sd *SimDispatcher) RunAircraftCommands(cmds *AircraftCommandsArgs, _ *stru
 	}
 
 	commands := strings.Fields(cmds.Commands)
-	lg.Info("entered control commands", slog.String("callsign", callsign),
-		slog.Any("commands", commands))
 
 	for i, command := range commands {
 		switch command[0] {
@@ -1025,6 +1023,7 @@ func (sd *SimDispatcher) RunAircraftCommands(cmds *AircraftCommandsArgs, _ *stru
 			return ErrInvalidCommandSyntax
 		}
 	}
+
 	return nil
 }
 

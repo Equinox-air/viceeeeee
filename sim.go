@@ -1508,7 +1508,11 @@ func (s *Sim) dispatchCommand(token string, callsign string,
 		if err := check(ctrl, ac); err != nil {
 			return err
 		} else {
+			preAc := *ac
 			radioTransmissions := cmd(ctrl, ac)
+			s.lg.Debug("dispatch_command", slog.String("callsign", ac.Callsign),
+				slog.Any("prepost_aircraft", []Aircraft{preAc, *ac}),
+				slog.Any("radio_transmissions", radioTransmissions))
 			PostRadioEvents(ac.Callsign, radioTransmissions, s)
 			return nil
 		}

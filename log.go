@@ -18,8 +18,6 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-// Logger provides a simple logging system with a few different log levels;
-// debugging and verbose output may both be suppressed independently.
 type Logger struct {
 	*slog.Logger
 	start time.Time
@@ -31,9 +29,9 @@ func NewLogger(server bool, level string) *Logger {
 	if server {
 		w = &lumberjack.Logger{
 			Filename: "vice-logs/slog",
-			MaxSize:  100, // MB
+			MaxSize:  1024, // MB
 			MaxAge:   14,
-			Compress: false,
+			Compress: true,
 		}
 	} else {
 		dir, err := os.UserConfigDir()
@@ -41,14 +39,12 @@ func NewLogger(server bool, level string) *Logger {
 			fmt.Fprintf(os.Stderr, "Unable to find user config dir: %v", err)
 			dir = "."
 		}
-		fn := path.Join(dir, "Vice", "vice.log")
+		fn := path.Join(dir, "Vice", "vice.slog")
 
-		w, err = os.Create(fn)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s: %v", fn, err)
-			w = os.Stderr
-		} else {
-			w = io.MultiWriter(w, os.Stderr)
+		w = &lumberjack.Logger{
+			Filename:   fn,
+			MaxSize:    32, // MB
+			MaxBackups: 1,
 		}
 	}
 
@@ -109,27 +105,39 @@ func callstack() slog.Attr {
 	n := runtime.Callers(3, callers[:]) // skip up to function that is doing logging
 	frames := runtime.CallersFrames(callers[:n])
 
-	var s []any
+	type Frame struct {
+		File     string `json:"file"`
+		Line     int    `json:"line"`
+		Function string `json:"function"`
+	}
+	var fr []Frame
 	for i := 0; ; i++ {
 		frame, more := frames.Next()
-		s = append(s, slog.Group("frame"+fmt.Sprintf("%d", i),
-			slog.String("file", path.Base(frame.File)),
-			slog.Int("line", frame.Line),
-			slog.String("function", strings.TrimPrefix(frame.Function, "main."))))
+		fr = append(fr, Frame{
+			File:     path.Base(frame.File),
+			Line:     frame.Line,
+			Function: strings.TrimPrefix(frame.Function, "main."),
+		})
 
 		// Don't keep going up into go runtime stack frames.
 		if !more || frame.Function == "main.main" {
 			break
 		}
 	}
-	return slog.Group("callstack", s...)
+	return slog.Any("callstack", fr)
 }
 
-// We wrap the logging methods used elsewhere in vice to allow a nil
-// *Logger, in which case debug and info methods are discarded (warnings
-// and errors still go through to slog.)
+// Debug wraps slog.Debug to add call stack information (and similarly for
+// the following Logger methods...)  Note that we do not wrap the entire
+// slog logging interface, so, for example, WarnContext and Log do not have
+// callstacks included.
+//
+// We also wrap the logging methods to allow a nil *Logger, in which case
+// debug and info messages are discarded (though warnings and errors still
+// go through to slog.)
 func (l *Logger) Debug(msg string, args ...any) {
 	if l != nil {
+		args = append([]any{callstack()}, args...)
 		l.Logger.Debug(msg, args...)
 	}
 }
@@ -144,20 +152,17 @@ func (l *Logger) Debugf(msg string, args ...any) {
 
 func (l *Logger) Info(msg string, args ...any) {
 	if l != nil {
+		args = append([]any{callstack()}, args...)
 		l.Logger.Info(msg, args...)
 	}
 }
 
 func (l *Logger) Infof(msg string, args ...any) {
 	if l != nil {
-		l.Logger.Info(fmt.Sprintf(msg, args...))
+		l.Logger.Info(fmt.Sprintf(msg, args...), callstack())
 	}
 }
 
-// Warn wraps slog.Warn to add call stack information (and similarly for
-// Warnf and Error[f] below). Note that we do not wrap the entire slog
-// logging interface, so, for example, WarnContext and Log do not have
-// callstacks included.
 func (l *Logger) Warn(msg string, args ...any) {
 	args = append([]any{callstack()}, args...)
 	if l == nil {

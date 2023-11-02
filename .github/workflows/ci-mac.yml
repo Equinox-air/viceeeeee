@@ -107,7 +107,7 @@ jobs:
         APPLE_CODESIGN_PASSWORD: ${{ secrets.APPLE_CODESIGN_PASSWORD2 }}
         APPLE_CODESIGN_ID: ${{ secrets.APPLE_CODESIGN_ID2 }}
         APPLE_TEAMID: ${{ secrets.APPLE_TEAMID }}
-      run:
+      run: |
         # make a zip for notarization.
         zip -rv vice.zip Vice.app
         # get the zip file notarized

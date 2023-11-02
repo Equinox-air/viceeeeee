@@ -104,8 +104,8 @@ jobs:
 
     - name: Notarize Vice.app
       env:
-        APPLE_CODESIGN_PASSWORD: ${{ secrets.APPLE_CODESIGN_PASSWORD }}
-        APPLE_CODESIGN_ID: ${{ secrets.APPLE_CODESIGN_ID }}
+        APPLE_CODESIGN_PASSWORD: ${{ secrets.APPLE_CODESIGN_PASSWORD2 }}
+        APPLE_CODESIGN_ID: ${{ secrets.APPLE_CODESIGN_ID2 }}
       run:
         zsh osx/notarize-app.sh
 

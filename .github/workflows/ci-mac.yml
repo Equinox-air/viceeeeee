@@ -72,11 +72,11 @@ jobs:
         mkdir -p Vice.app/Contents/MacOS
         cp vice Vice.app/Contents/MacOS/
         cp osx/Info.plist Vice.App/Contents/
-        cp mva_fus3.zip Vice.app/Contents/
         mkdir Vice.app/Contents/Resources
         cp icon.icns Vice.app/Contents/Resources
         cp resources/*.zst resources/*.json Vice.app/Contents/Resources
         mkdir -p Vice.app/Contents/Resources/{audio,fonts,scenarios,videomaps}
+        cp reaources/mva_fus3.zip Vice.app/Contents/Resources
         cp resources/audio/*mp3 Vice.app/Contents/Resources/audio/
         cp resources/fonts/*zst Vice.app/Contents/Resources/fonts/
         cp resources/scenarios/*json Vice.app/Contents/Resources/scenarios/

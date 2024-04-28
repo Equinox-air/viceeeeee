@@ -1048,8 +1048,20 @@ func (sd *SimDispatcher) RunAircraftCommands(cmds *AircraftCommandsArgs, result 
 				return nil
 			}
 		case 'F':
-			if command == "FC" {
-				if err := sim.HandoffControl(token, callsign); err != nil {
+			if (len(command) == 2 || len(command) == 6 ||len(command) == 7 || len(command) == 8) && command[:2] == "FC" {
+				var frequency string 
+				if len(command) == 6 {
+					command += "0"
+				}
+				if len(command) == 7 {
+					frequency = command[2:]
+					index := 3
+					frequency = frequency[:index] + "." + frequency[index:]
+				}
+				if len(command) == 8 {
+					frequency = command[2:]
+				}
+				if err := sim.HandoffControl(token, callsign, frequency); err != nil {
 					rewriteError(err)
 					return nil
 				}

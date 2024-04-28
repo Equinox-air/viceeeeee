@@ -2105,11 +2105,12 @@ func (s *Sim) HandoffTrack(token, callsign, controller string) error {
 			// end up accepting it automatically.
 			acceptDelay := 4 + rand.Intn(10)
 			s.Handoffs[ac.Callsign] = s.SimTime.Add(time.Duration(acceptDelay) * time.Second)
+			ac.TrackHistory = append(ac.TrackHistory, octrl.Callsign)
 			return nil
 		})
 }
 
-func (s *Sim) HandoffControl(token, callsign string) error {
+func (s *Sim) HandoffControl(token, callsign, frequency string) error {
 	s.mu.Lock(s.lg)
 	defer s.mu.Unlock(s.lg)
 
@@ -2121,29 +2122,6 @@ func (s *Sim) HandoffControl(token, callsign string) error {
 			return nil
 		},
 		func(ctrl *Controller, ac *Aircraft) []RadioTransmission {
-			var radioTransmissions []RadioTransmission
-			if octrl := s.World.GetControllerByCallsign(ac.TrackingController); octrl != nil {
-				name := Select(octrl.FullName != "", octrl.FullName, octrl.Callsign)
-				bye := Sample("good day", "seeya")
-				contact := Sample("contact ", "over to ", "")
-				goodbye := contact + name + " on " + octrl.Frequency.String() + ", " + bye
-				radioTransmissions = append(radioTransmissions, RadioTransmission{
-					Controller: ac.ControllingController,
-					Message:    goodbye,
-					Type:       RadioTransmissionReadback,
-				})
-				radioTransmissions = append(radioTransmissions, RadioTransmission{
-					Controller: ac.TrackingController,
-					Message:    ac.ContactMessage(s.ReportingPoints),
-					Type:       RadioTransmissionContact,
-				})
-			} else {
-				radioTransmissions = append(radioTransmissions, RadioTransmission{
-					Controller: ac.ControllingController,
-					Message:    "goodbye",
-					Type:       RadioTransmissionReadback,
-				})
-			}
 
 			s.eventStream.Post(Event{
 				Type:           HandoffControllEvent,
@@ -2152,7 +2130,59 @@ func (s *Sim) HandoffControl(token, callsign string) error {
 				Callsign:       ac.Callsign,
 			})
 
-			ac.ControllingController = ac.TrackingController
+			var radioTransmissions []RadioTransmission
+
+			if frequency == "" {
+				if len(ac.TrackHistory) > 1 {
+					ac.TrackHistory = ac.TrackHistory[1:]
+					ac.ControllingController = ac.TrackHistory[0]
+				} else {
+					radioTransmissions = append(radioTransmissions, RadioTransmission{
+						Controller: ac.ControllingController,
+						Message:    "We were never told who to contact",
+						Type:       RadioTransmissionUnexpected,
+					})
+				}
+			} else {
+				controllers := s.World.GetAllControllers()
+				var handoffController *Controller
+				for _, control := range controllers {
+					if control.Frequency.String()[:6] == frequency {
+						handoffController = control
+						break
+					}
+				}
+
+				if handoffController != nil {
+					if index := slices.Index(ac.TrackHistory, handoffController.Callsign); index == -1 { // Not found
+						ac.TrackHistory = nil
+					} else {
+						ac.TrackHistory = ac.TrackHistory[index:]
+					}
+					name := Select(handoffController.FullName != "", handoffController.FullName, handoffController.Callsign)
+					bye := Sample("good day", "seeya")
+					contact := Sample("contact ", "over to ", "")
+					goodbye := contact + name + " on " + handoffController.Frequency.String() + ", " + bye
+					radioTransmissions = append(radioTransmissions, RadioTransmission{
+						Controller: ac.ControllingController,
+						Message:    goodbye,
+						Type:       RadioTransmissionReadback,
+					})
+					ac.ControllingController = handoffController.Callsign
+					radioTransmissions = append(radioTransmissions, RadioTransmission{
+						Controller: handoffController.Callsign,
+						Message:    ac.ContactMessage(s.ReportingPoints),
+						Type:       RadioTransmissionContact,
+					})
+				} else {
+
+					radioTransmissions = append(radioTransmissions, RadioTransmission{
+						Controller: ac.ControllingController,
+						Message:    "That frequency doesn't seem valid?",
+						Type:       RadioTransmissionUnexpected,
+					})
+				}
+			}
 
 			// Go ahead and climb departures the rest of the way and send
 			// them direct to their first fix (if they aren't already).
@@ -2162,7 +2192,7 @@ func (s *Sim) HandoffControl(token, callsign string) error {
 					slog.Int("final_altitude", ac.FlightPlan.Altitude))
 				ac.DepartOnCourse()
 			}
-
+			fmt.Println(radioTransmissions)
 			return radioTransmissions
 		})
 }
@@ -2188,6 +2218,8 @@ func (s *Sim) AcceptHandoff(token, callsign string) error {
 
 			ac.HandoffTrackController = ""
 			ac.TrackingController = ctrl.Callsign
+			ac.TrackHistory = append(ac.TrackHistory, ctrl.Callsign)
+
 			if !s.controllerIsSignedIn(ac.ControllingController) {
 				// Take immediate control on handoffs from virtual
 				ac.ControllingController = ctrl.Callsign

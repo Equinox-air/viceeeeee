@@ -2641,10 +2641,10 @@
             } 
           ]
         },
-        "assigned_altitude": 7000,
+        "assigned_altitude": 5000,
         "cruise_altitude": 34000,
         "expect_approach": "I0L",
-        "initial_altitude": 5000,
+        "initial_altitude": 7000,
         "initial_controller": "PDX_APP",
         "initial_speed": 250,
         "speed_restriction": 210,

@@ -3629,7 +3629,7 @@
                             }
                         ]
                     },
-                    "initial_altitude": 7000,
+                    "initial_altitude": 10000,
                     "initial_controller": "CHI_81_CTR",
                     "initial_speed" : 250,
                     "star": "ENDEE6",
@@ -4746,7 +4746,7 @@
                         }
                     },
                     "speed_restriction": 250,
-                    "waypoints": "JVL KRENA/ho"
+                    "waypoints": "JVL N042.30.12.139,W088.55.33.059/ho KRENA/h114"
                 }
             ],
             "PLANO": [

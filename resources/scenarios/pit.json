@@ -887,14 +887,14 @@
               "star": "DEMME5",
               "runway_waypoints": {
                   "KPIT": {
-                      "28L": "DEMME LMBRT STILR/a6000+/h071",
-                      "28R": "DEMME LMBRT STILR/a6000+/h071",
-                      "10L": "DEMME PENGN RIVRZ HEINZ/a6000+/h281",
-                      "10R": "DEMME PENGN RIVRZ HEINZ/a6000+/h281",
-                      "32":  "DEMME GRUNZ/a6000+/h303"
+                      "28L": "NESTO/a10000 DEMME LMBRT STILR/a6000+/h071",
+                      "28R": "NESTO/a10000 DEMME LMBRT STILR/a6000+/h071",
+                      "10L": "NESTO/a10000 DEMME PENGN RIVRZ HEINZ/a6000+/h281",
+                      "10R": "NESTO/a10000 DEMME PENGN RIVRZ HEINZ/a6000+/h281",
+                      "32":  "NESTO/a10000 DEMME GRUNZ/a6000+/h303"
                   }
               },
-              "waypoints": "VINSE LEJOY/ho PLEEZ NESTO/a10000 "
+              "waypoints": "VINSE LEJOY/ho PLEEZ NESTO/a10000"
       }
       ],
 
@@ -939,14 +939,14 @@
             "star": "FEWGA7",
             "runway_waypoints": {
                 "KPIT": {
-                    "28L": "FEWGA BBLAK GOLDH JOEPA GUINZ CYDNY/h101",
-                    "28R": "FEWGA BBLAK GOLDH JOEPA GUINZ CYDNY/h101",
-                    "10L": "FEWGA LEMEW/h301",
-                    "10R": "FEWGA LEMEW/h301",
-                    "32":  "FEWGA BBLAK GOLDH FLURY MLKIN CRSBY/h146"
+                    "28L": "WISKE/a10000 FEWGA BBLAK GOLDH JOEPA GUINZ CYDNY/h101",
+                    "28R": "WISKE/a10000 FEWGA BBLAK GOLDH JOEPA GUINZ CYDNY/h101",
+                    "10L": "WISKE/a10000 FEWGA LEMEW/h301",
+                    "10R": "WISKE/a10000 FEWGA LEMEW/h301",
+                    "32":  "WISKE/a10000 FEWGA BBLAK GOLDH FLURY MLKIN CRSBY/h146"
                 }
             },
-            "waypoints": "PYRAT AIR/ho WISKE/a10000 "
+            "waypoints": "PYRAT AIR/ho WISKE/a10000"
         }
     ],
 

@@ -1999,7 +1999,7 @@
               "initial_controller": "HOU_81_CTR",
               "initial_speed": 250,
               "star": "TKNIQ3",
-              "waypoints": "TKNIQ/a12000/s250/ho DOCCC",
+              "waypoints": "BBURT TKNIQ/a12000/s250/ho DOCCC",
               "runway_waypoints": {
                 "KHOU": {
                     "4": "DOCCC FRDDY FIGGG SHUUG EMARR/flyover/h220",
@@ -2169,8 +2169,9 @@
               "initial_controller": "I90_D_APP",
               "initial_speed": 240,
               "star": "LINKK1",
+              "scratchpad": "I27",
               "expect_approach": "I27",
-              "waypoints": "GILLL/a9000/s240/ho RDFSH/a6000/s210"
+              "waypoints": "LINKK/a12000-15000 GILLL/a9000/s240/ho RDFSH/a6000/s210"
             }
           ]
     },
@@ -2748,6 +2749,34 @@
         "center": "KIAH",
         "coordination_fixes": {
             "BEATL": [
+                {
+                    "type": "route",
+                    "to": "I90",
+                    "from": "ZHU"
+                }
+            ],
+            "GILLL": [
+                {
+                    "type": "route",
+                    "to": "I90",
+                    "from": "ZHU"
+                }
+            ],
+            "HOWLN": [
+                {
+                    "type": "route",
+                    "to": "I90",
+                    "from": "ZHU"
+                }
+            ],
+            "BOPPR": [
+                {
+                    "type": "route",
+                    "to": "I90",
+                    "from": "ZHU"
+                }
+            ],
+            "DOMNO": [
                 {
                     "type": "route",
                     "to": "I90",

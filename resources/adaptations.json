@@ -404,6 +404,20 @@
                     "from": "ZBW"
                 }
             ],
+            "GGABE": [
+                {
+                    "type": "route",
+                    "to": "A90",
+                    "from": "ZBW"
+                }
+            ],
+            "GOSHI": [
+                {
+                    "type": "route",
+                    "to": "A90",
+                    "from": "ZBW"
+                }
+            ],
             "VALRE": [
                 {
                     "type": "route",
@@ -1256,6 +1270,41 @@
                     "from": "F11"
                 }
             ],
+            "PENSE": [
+                {
+                    "type": "route",
+                    "to": "JAX",
+                    "from": "ZJX"
+                }
+            ],
+            "NATII": [
+                {
+                    "type": "route",
+                    "to": "JAX",
+                    "from": "ZJX"
+                }
+            ],
+            "MAHKA": [
+                {
+                    "type": "route",
+                    "to": "JAX",
+                    "from": "ZJX"
+                }
+            ],
+            "BETLE": [
+                {
+                    "type": "route",
+                    "to": "JAX",
+                    "from": "ZJX"
+                }
+            ],
+            "JERZI": [
+                {
+                    "type": "route",
+                    "to": "JAX",
+                    "from": "ZJX"
+                }
+            ],
             "GOTBE": [
                 {
                     "type": "route",
@@ -1611,6 +1660,34 @@
     },
     "ZHU": {
         "coordination_fixes": {
+            "GILLL": [
+                {
+                    "type": "route",
+                    "to": "I90",
+                    "from": "ZHU"
+                }
+            ],
+            "HOWLN": [
+                {
+                    "type": "route",
+                    "to": "I90",
+                    "from": "ZHU"
+                }
+            ],
+            "BOPPR": [
+                {
+                    "type": "route",
+                    "to": "I90",
+                    "from": "ZHU"
+                }
+            ],
+            "DOMNO": [
+                {
+                    "type": "route",
+                    "to": "I90",
+                    "from": "ZHU"
+                }
+            ],
             "DXEEE": [
                 {
                     "type": "route",

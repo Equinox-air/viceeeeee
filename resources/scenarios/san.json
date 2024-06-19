@@ -485,7 +485,7 @@
                 "initial_controller": "LAX_55_CTR",
                 "initial_speed": 250,
                 "star": "COMIX2",
-                "waypoints": "LEJEN/ho COMIX/a12000+/a15000- FLSHH LNTRN/a9000+ XMANS/a7000 KLOMN/a6000 NADDO/a6000"
+                "waypoints": "GAMBT LEJEN/ho COMIX/a12000+/a15000- FLSHH LNTRN/a9000+ XMANS/a7000 KLOMN/a6000 NADDO/a6000"
             }
         ],
         

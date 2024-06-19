@@ -734,6 +734,41 @@
                     "from": "ZMA"
                 }
             ],
+            "ALYNA": [
+                {
+                    "type": "route",
+                    "to": "ZJX",
+                    "from": "ZMA"
+                }
+            ],
+            "HAANZ": [
+                {
+                    "type": "route",
+                    "to": "ZJX",
+                    "from": "ZMA"
+                }
+            ],
+            "WISRD": [
+                {
+                    "type": "route",
+                    "to": "ZJX",
+                    "from": "ZMA"
+                }
+            ],
+            "GIRAF": [
+                {
+                    "type": "route",
+                    "to": "ZJX",
+                    "from": "ZMA"
+                }
+            ],
+            "LORRA": [
+                {
+                    "type": "route",
+                    "to": "ZJX",
+                    "from": "ZMA"
+                }
+            ],
             "ZINGR": [
                 {
                     "type": "route",
@@ -1039,6 +1074,27 @@
                     "from": "ZMA"
                 }
             ],
+            "ALYNA": [
+                {
+                    "type": "route",
+                    "to": "F11",
+                    "from": "ZMA"
+                }
+            ],
+            "WISRD": [
+                {
+                    "type": "route",
+                    "to": "F11",
+                    "from": "ZMA"
+                }
+            ],
+            "HAANZ": [
+                {
+                    "type": "route",
+                    "to": "F11",
+                    "from": "ZMA"
+                }
+            ],
             "SURFR": [
                 {
                     "type": "route",
@@ -1061,6 +1117,41 @@
                 }
             ],
             "GRNCH": [
+                {
+                    "type": "route",
+                    "to": "F11",
+                    "from": "ZJX"
+                }
+            ],
+            "BANYA": [
+                {
+                    "type": "route",
+                    "to": "F11",
+                    "from": "ZJX"
+                }
+            ],
+            "YAGGO": [
+                {
+                    "type": "route",
+                    "to": "F11",
+                    "from": "ZJX"
+                }
+            ],
+            "SUNDE": [
+                {
+                    "type": "route",
+                    "to": "F11",
+                    "from": "ZJX"
+                }
+            ],
+            "GIRAF": [
+                {
+                    "type": "route",
+                    "to": "F11",
+                    "from": "ZMA"
+                }
+            ],
+            "HARAM": [
                 {
                     "type": "route",
                     "to": "F11",

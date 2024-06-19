@@ -378,7 +378,21 @@
                     "to": "ABE",
                     "from": "ZNY"
                 }
-            ]
+            ],
+            "OOD": [
+                {
+                  "type": "route",
+                  "to": "ZDC",
+                  "from": "ZNY"
+                }
+              ],
+              "DQO": [
+                {
+                  "type": "route",
+                  "to": "ZDC",
+                  "from": "ZNY"
+                }
+              ]
         }
     },
     "ZBW": {
@@ -699,6 +713,20 @@
     },
     "ZMA": {
         "coordination_fixes": {
+            "ECAKE": [
+                {
+                    "type": "route",
+                    "to": "ZJX",
+                    "from": "ZMA"
+                }
+            ],
+            "LACEN": [
+                {
+                    "type": "route",
+                    "to": "ZJX",
+                    "from": "ZMA"
+                }
+            ],
             "RIDES": [
                 {
                     "type": "route",
@@ -850,6 +878,90 @@
     },
     "ZJX": {
         "coordination_fixes": {
+            "PLUMR": [
+                {
+                    "type": "route",
+                    "to": "ZMA",
+                    "from": "ZJX"
+                }
+            ],
+            "FSHUN": [
+                {
+                    "type": "route",
+                    "to": "ZMA",
+                    "from": "ZJX"
+                }
+            ],
+            "KLMAN": [
+                {
+                    "type": "route",
+                    "to": "ZMA",
+                    "from": "ZJX"
+                }
+            ],
+            "BORRD": [
+                {
+                    "type": "route",
+                    "to": "ZMA",
+                    "from": "ZJX"
+                }
+            ],
+            "VALKA": [
+                {
+                    "type": "route",
+                    "to": "ZMA",
+                    "from": "ZJX"
+                }
+            ],
+            "JIPOD": [
+                {
+                    "type": "route",
+                    "to": "ZMA",
+                    "from": "ZJX"
+                }
+            ],
+            "ZALEN": [
+                {
+                    "type": "route",
+                    "to": "ZMA",
+                    "from": "ZJX"
+                }
+            ],
+            "ETECK": [
+                {
+                    "type": "route",
+                    "to": "ZMA",
+                    "from": "ZJX"
+                }
+            ],
+            "FAROV": [
+                {
+                    "type": "route",
+                    "to": "ZMA",
+                    "from": "ZJX"
+                }
+            ],
+            "LENDS": [
+                {
+                    "type": "route",
+                    "to": "ZMA",
+                    "from": "ZJX"
+                }
+            ],
+            "MLB": [
+                {
+                    "type": "route",
+                    "to": "ZMA",
+                    "from": "ZJX"
+                }
+            ],
+            "DDANY": [
+                {
+                    "type": "route",
+                    "to": "ZMA",
+                    "from": "ZJX"
+                }
+            ],
             "OLENE": [
                 {
                     "type": "route",

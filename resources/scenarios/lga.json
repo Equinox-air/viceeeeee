@@ -2487,6 +2487,41 @@
   "stars_config": {
   "center": "KLGA",
   "coordination_fixes": {
+    "MERIT": [
+      {
+          "type": "route",
+          "to": "ZBW",
+          "from": "ZNY"
+      }
+  ],
+  "GREKI": [
+      {
+          "type": "route",
+          "to": "ZBW",
+          "from": "ZNY"
+      }
+  ],
+  "BAYYS": [
+      {
+          "type": "route",
+          "to": "ZBW",
+          "from": "ZNY"
+      }
+  ],
+  "BETTE": [
+      {
+          "type": "route",
+          "to": "ZBW",
+          "from": "ZNY"
+      }
+  ],
+  "HAPIE": [
+      {
+          "type": "route",
+          "to": "ZBW",
+          "from": "ZNY"
+      }
+  ],
     "KORRY": [
       {
           "type": "route",

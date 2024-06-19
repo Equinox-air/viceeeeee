@@ -9757,6 +9757,90 @@
   "beacon_code_bank": 3,
   "center": "N028.25.45.781,W081.18.32.260",
   "coordination_fixes": {
+    "PLUMR": [
+      {
+          "type": "route",
+          "to": "ZMA",
+          "from": "ZJX"
+      }
+  ],
+  "FSHUN": [
+      {
+          "type": "route",
+          "to": "ZMA",
+          "from": "ZJX"
+      }
+  ],
+  "KLMAN": [
+      {
+          "type": "route",
+          "to": "ZMA",
+          "from": "ZJX"
+      }
+  ],
+  "BORRD": [
+      {
+          "type": "route",
+          "to": "ZMA",
+          "from": "ZJX"
+      }
+  ],
+  "VALKA": [
+      {
+          "type": "route",
+          "to": "ZMA",
+          "from": "ZJX"
+      }
+  ],
+  "JIPOD": [
+      {
+          "type": "route",
+          "to": "ZMA",
+          "from": "ZJX"
+      }
+  ],
+  "ZALEN": [
+      {
+          "type": "route",
+          "to": "ZMA",
+          "from": "ZJX"
+      }
+  ],
+  "ETECK": [
+      {
+          "type": "route",
+          "to": "ZMA",
+          "from": "ZJX"
+      }
+  ],
+  "FAROV": [
+      {
+          "type": "route",
+          "to": "ZMA",
+          "from": "ZJX"
+      }
+  ],
+  "LENDS": [
+      {
+          "type": "route",
+          "to": "ZMA",
+          "from": "ZJX"
+      }
+  ],
+  "MLB": [
+      {
+          "type": "route",
+          "to": "ZMA",
+          "from": "ZJX"
+      }
+  ],
+  "DDANY": [
+      {
+          "type": "route",
+          "to": "ZMA",
+          "from": "ZJX"
+      }
+  ],
     "RIDES": [
           {
           "type": "route",
@@ -9866,7 +9950,9 @@
     },
     {
         "fixes": [
-            "PLUMR"
+            "PLUMR",
+            "FSHUN",
+            "KLMAN"
         ],
         "altitude_range": [
             0,

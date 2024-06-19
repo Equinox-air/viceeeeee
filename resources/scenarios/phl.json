@@ -5305,6 +5305,20 @@
   "stars_config": {
   "center": "KPHL",
   "coordination_fixes": {
+    "OOD": [
+      {
+        "type": "route",
+        "to": "ZDC",
+        "from": "ZNY"
+      }
+    ],
+    "DQO": [
+      {
+        "type": "route",
+        "to": "ZDC",
+        "from": "ZNY"
+      }
+    ],
     "BOJID": [
       {
           "type": "route",

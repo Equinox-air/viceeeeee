@@ -3146,6 +3146,7 @@
   },
   "stars_config": {
   "center": "N27.58.31.700,W82.31.59.700",
+  "coordination_fixes": {
   "DSIDE":  [
     {
         "type": "route",
@@ -3188,6 +3189,21 @@
             "from": "ZMA"
         }
     ],
+    "ECAKE": [
+      {
+          "type": "route",
+          "to": "ZJX",
+          "from": "ZMA"
+      }
+  ],
+  "LACEN": [
+      {
+          "type": "route",
+          "to": "ZJX",
+          "from": "ZMA"
+      }
+  ]
+  },
   "inhibit_ca_volumes": [
     {
       "name": "TPA FINAL S OPS",

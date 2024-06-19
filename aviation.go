@@ -37,9 +37,9 @@ const (
 
 type AdaptationFix struct {
 	Type           string `json:"type"`
-	ToController   string `json:"to"`   // controller to handoff to
-	FromController string `json:"from"` // controller to handoff from
-	Altitude [2]int `json:"altitude"` // cruising alt. RBV is 6000 from WRI and 7000 from PHL
+	ToController   string `json:"to"`       // controller to handoff to
+	FromController string `json:"from"`     // controller to handoff from
+	Altitude       [2]int `json:"altitude"` // cruising alt. RBV is 6000 from WRI and 7000 from PHL
 }
 
 type FAAAirport struct {
@@ -1045,9 +1045,9 @@ func (w WaypointArray) CheckArrival(e *ErrorLogger) {
 		}
 		e.Pop()
 	}
-	// if w[0].Handoff {
-	// 	e.ErrorString("First waypoint cannot be a handoff")
-	// }
+	if w[0].Handoff {
+		e.ErrorString("First waypoint cannot be a handoff")
+	}
 }
 
 func (w WaypointArray) checkDescending(e *ErrorLogger) {

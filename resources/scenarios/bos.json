@@ -6464,7 +6464,7 @@
         },
         "cruise_altitude": 35000,
         "expect_approach": "I4R",
-        "initial_altitude": 8000,
+        "initial_altitude": 9000,
         "initial_controller": "BOS_S_APP",
         "initial_speed": 230,
         "speed_restriction": 220,

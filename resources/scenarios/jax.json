@@ -1001,7 +1001,7 @@
             }
           ]
         },
-        "initial_altitude": 6000,
+        "initial_altitude": 9000,
         "expect_approach": "I8",
         "initial_controller": "JAX_W_APP",
         "initial_speed": 250,

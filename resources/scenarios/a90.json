@@ -7292,7 +7292,7 @@
               "BOS_B_APP": {"backup": "BOS_N_APP", "arrivals": ["DREEM2.BED", "DREEM2.LWM", "DREEM2.BVY", "ZELKA2.BED", "ZELKA2.LWM", "ZELKA2.BVY"]},
               "BOS_L_APP": {"backup": "BOS_S_APP"},
               "BOS_U_APP": {"backup": "BOS_DEP",  "arrivals": ["WOONS.3K", "WOONS.5K", "WOONS.7K"]},
-              "MHT_Z_APP": {"primary": true},
+              "MHT_Z_APP": {"backup": "BOS_DEP"},
               "MHT_J_APP": {"backup": "MHT_Z_APP", "departures": ["KMHT"]},
               "MHT_E_APP": {"backup": "MHT_Z_APP", "arrivals":["ENE"]},
               "MHT_P_APP": {"backup": "MHT_E_APP", "departures":["KPSM"]},

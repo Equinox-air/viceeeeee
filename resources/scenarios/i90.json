@@ -2060,7 +2060,7 @@
               "initial_controller": "HOU_81_CTR",
               "initial_speed": 280,
               "star": "WAPPL6",
-              "waypoints": "WAPPL/a22000-27000/s280/ho WLMOR/a15000-21000 HUDZY CLWSN/a12000-14000 SWWAA/a10000-12000/s250 PUSHN/a8000+",
+              "waypoints": "WAPPL/a22000-27000/s280 WLMOR/a15000-21000/ho HUDZY CLWSN/a12000-14000 SWWAA/a10000-12000/s250 PUSHN/a8000+",
               "runway_waypoints": {
                 "KHOU": {
                     "4": "PUSHN/a8000+ BUGZY/a10000- PRTCH/a7000- SHUUG/a6000/s210 EMARR/flyover/h222",
@@ -2165,7 +2165,7 @@
                   }
                 ]
               },
-              "initial_altitude": 9000,
+              "initial_altitude": 12000,
               "initial_controller": "I90_D_APP",
               "initial_speed": 240,
               "star": "LINKK1",

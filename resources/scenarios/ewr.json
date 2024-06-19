@@ -3041,7 +3041,7 @@
         "initial_speed": 300,
         "star": "LVZ4",
         "speed_restriction": null,
-        "waypoints": "LVZ/a18000/ho HARTY MUGZY/a6000 STW/h125"
+        "waypoints": "LVZ/a18000 N041.14.55.880,W075.37.04.594/ho HARTY MUGZY/a6000 STW/h125"
       }
     ],
     "MAZIE": [
@@ -3310,12 +3310,12 @@
         },
         "assigned_altitude": 6000,
         "cruise_altitude": 39000,
-        "initial_altitude": 6000,
+        "initial_altitude": 7000,
         "initial_controller": "EWR_A_APP",
         "initial_speed": 250,
         "star": "FLOSI4",
         "speed_restriction": null,
-        "waypoints": "SHAFF/ho SAX PHLBO HOKIR/h180",
+        "waypoints": "CRANK/a7000 SHAFF/ho SAX PHLBO HOKIR/h180",
         "expect_approach": "I4R"
       }
     ],
@@ -3340,7 +3340,7 @@
         "initial_speed": 300,
         "route": "/. RUUTH V123 RBV",
         "speed_restriction": null,
-        "waypoints": "RUUTH/ho RBV KEWR"
+        "waypoints": "RUUTH N039.53.11.363,W074.56.58.478/ho RBV KEWR"
       }
     ],
     "PHLBO4": [
@@ -3499,7 +3499,7 @@
         "initial_speed": 250,
         "star": "PHLBO4",
         "speed_restriction": null,
-        "waypoints": "DYLIN/ho MERSR METRO MARRT PHLBO/h025",
+        "waypoints": "N040.16.55.988,W074.52.03.248 DYLIN/ho MERSR METRO MARRT PHLBO/h025",
         "expect_approach": "I2L"
       }
     ],
@@ -3580,7 +3580,7 @@
         "initial_speed": 250,
         "star": "PHLBO4",
         "speed_restriction": null,
-        "waypoints": "DYLIN/ho MERSR METRO MARRT PHLBO/h025",
+        "waypoints": "N040.16.55.521,W074.52.04.786 DYLIN/ho MERSR METRO MARRT PHLBO/h025",
         "expect_approach": "RY9"
       }
     ],
@@ -3601,7 +3601,7 @@
         "initial_speed": 300,
         "route": "/. CYN GXU RBV V249 METRO",
         "speed_restriction": null,
-        "waypoints": "CYN/ho GXU RBV METRO KEWR"
+        "waypoints": "CYN N039.50.16.845,W074.26.58.176/ho GXU RBV METRO KEWR"
       }
     ]
   },

@@ -4900,7 +4900,7 @@
                         }
                     ]
                 },
-                "initial_altitude": 15000,
+                "initial_altitude": 16000,
                 "initial_controller": "BOS_37_CTR",
                 "initial_speed": 280,
                 "star": "ROZZE2",
@@ -4912,7 +4912,7 @@
                         "35": "ROZZE NUUKM/a7000-9000 SHOWZ/a5000/s210/flyover"
                     }
                 },
-                "waypoints": "FLYZZ/a13000+/ho FYSHR/a9000+ ROZZE"
+                "waypoints": "LUCIC/a16000+ FLYZZ/a13000+/ho FYSHR/a9000+ ROZZE"
             }
         ],
         "DEEPO1": [
@@ -5113,17 +5113,17 @@
                 "initial_controller": "BOS_37_CTR",
                 "initial_speed": 250,
                 "route": "BTSEE SCARB ENE",
-                "waypoints": "BTSEE SCARB/ho",
+                "waypoints": "BTSEE N043.37.27.280,W070.12.02.241/ho SCARB",
                 "runway_waypoints": {
                     "KMHT": {
-                        "6": "SCARB/ho ENE/h243",
-                        "17": "SCARB/ho ENE/h243",
-                        "24": "SCARB/ho ENE/h243",
-                        "35": "SCARB/ho ENE/h243"
+                        "6": "SCARB ENE/h243",
+                        "17": "SCARB ENE/h243",
+                        "24": "SCARB ENE/h243",
+                        "35": "SCARB ENE/h243"
                     },
                     "KPSM": {
-                        "16": "SCARB/ho ENE/h212",
-                        "34": "SCARB/ho ENE/h212"
+                        "16": "SCARB ENE/h212",
+                        "34": "SCARB ENE/h212"
                     }
                 }
             }
@@ -5180,7 +5180,7 @@
                 "initial_controller": "BOS_37_CTR",
                 "initial_speed": 280,
                 "route": "KJOHN CAMTN CON",
-                "waypoints": "KJOHN/ho CAMTN",
+                "waypoints": "KJOHN N044.07.14.976,W071.43.18.211/ho CAMTN",
                 "runway_waypoints": {
                     "KMHT": {
                         "6": "CAMTN CON/h170",
@@ -5247,17 +5247,17 @@
                 "initial_controller": "BOS_37_CTR",
                 "initial_speed": 250,
                 "route": "BAF PUDGY GDM",
-                "waypoints": "BAF PUDGY/ho",
+                "waypoints": "BAF N042.15.58.996,W072.32.01.289/ho PUDGY",
                 "runway_waypoints": {
                     "KMHT": {
-                        "6": "PUDGY/ho GDM/h066",
-                        "17": "PUDGY/ho GDM/h066",
-                        "24": "PUDGY/ho GDM/h066",
-                        "35": "PUDGY/ho GDM/h066"
+                        "6":  "PUDGY GDM/h066",
+                        "17": "PUDGY GDM/h066",
+                        "24": "PUDGY GDM/h066",
+                        "35": "PUDGY GDM/h066"
                     },
                     "KPSM": {
-                        "16": "PUDGY/ho GDM/h074",
-                        "34": "PUDGY/ho GDM/h074"
+                        "16": "PUDGY GDM/h074",
+                        "34": "PUDGY GDM/h074"
                     }
                 }
             }
@@ -6854,7 +6854,7 @@
             },
             "cruise_altitude": 35000,
             "expect_approach": "I4R",
-            "initial_altitude": 8000,
+            "initial_altitude": 9000,
             "initial_controller": "BOS_S_APP",
             "initial_speed": 230,
             "speed_restriction": 220,
@@ -8136,10 +8136,9 @@
                 "BOS_S_APP": {"backup": "BOS_N_APP", "arrivals": ["ROBUC3","FREDO.6K",  "FREDO.8K"]},
                 "BOS_F_APP": {"backup": "BOS_N_APP"},
                 "BOS_I_APP": {"backup": "BOS_F_APP"},
-                "MHT_Z_APP": {"primary": true},
+                "MHT_Z_APP": {"backup": "BOS_DEP"},
                 "MHT_J_APP": {"backup": "MHT_Z_APP", "departures": ["KMHT"]},
                 "MHT_E_APP": {"backup": "MHT_Z_APP", "arrivals":["ENE"]},
-                "MHT_P_APP": {"backup": "MHT_E_APP", "departures":["KPSM"]},
                 "MHT_W_APP": {"backup": "MHT_J_APP", "arrivals": ["CON", "GDM", "ROZZE2"]}
             }
         },

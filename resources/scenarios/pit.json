@@ -887,14 +887,14 @@
               "star": "DEMME5",
               "runway_waypoints": {
                   "KPIT": {
-                      "28L": "LEJOY/ho PLEEZ NESTO/a10000 DEMME LMBRT STILR/a6000+/h071",
-                      "28R": "LEJOY/ho PLEEZ NESTO/a10000 DEMME LMBRT STILR/a6000+/h071",
-                      "10L": "LEJOY/ho PLEEZ NESTO/a10000 DEMME PENGN RIVRZ HEINZ/a6000+/h281",
-                      "10R": "LEJOY/ho PLEEZ NESTO/a10000 DEMME PENGN RIVRZ HEINZ/a6000+/h281",
-                      "32":  "LEJOY/ho PLEEZ NESTO/a10000 DEMME GRUNZ/a6000+/h303"
+                      "28L": "DEMME LMBRT STILR/a6000+/h071",
+                      "28R": "DEMME LMBRT STILR/a6000+/h071",
+                      "10L": "DEMME PENGN RIVRZ HEINZ/a6000+/h281",
+                      "10R": "DEMME PENGN RIVRZ HEINZ/a6000+/h281",
+                      "32":  "DEMME GRUNZ/a6000+/h303"
                   }
               },
-              "waypoints": "VINSE LEJOY/ho"
+              "waypoints": "VINSE LEJOY/ho PLEEZ NESTO/a10000 "
       }
       ],
 
@@ -939,14 +939,14 @@
             "star": "FEWGA7",
             "runway_waypoints": {
                 "KPIT": {
-                    "28L": "AIR WISKE/a10000 FEWGA BBLAK GOLDH JOEPA GUINZ CYDNY/h101",
-                    "28R": "AIR WISKE/a10000 FEWGA BBLAK GOLDH JOEPA GUINZ CYDNY/h101",
-                    "10L": "AIR WISKE/a10000 FEWGA LEMEW/h301",
-                    "10R": "AIR WISKE/a10000 FEWGA LEMEW/h301",
-                    "32":  "AIR WISKE/a10000 FEWGA BBLAK GOLDH FLURY MLKIN CRSBY/h146"
+                    "28L": "FEWGA BBLAK GOLDH JOEPA GUINZ CYDNY/h101",
+                    "28R": "FEWGA BBLAK GOLDH JOEPA GUINZ CYDNY/h101",
+                    "10L": "FEWGA LEMEW/h301",
+                    "10R": "FEWGA LEMEW/h301",
+                    "32":  "FEWGA BBLAK GOLDH FLURY MLKIN CRSBY/h146"
                 }
             },
-            "waypoints": "PYRAT AIR/ho"
+            "waypoints": "PYRAT AIR/ho WISKE/a10000 "
         }
     ],
 
@@ -988,14 +988,14 @@
           "star": "HAYNZ7",
           "runway_waypoints": {
               "KPIT": {
-                  "28L": "EARED/ho GRACE/a10000 HAYNZ MYRON/h126",
-                  "28R": "EARED/ho GRACE/a10000 HAYNZ MYRON/h126",
-                  "10L": "EARED/ho GRACE/a10000 HAYNZ ROOSA TERBL TOWEL/h282",
-                  "10R": "EARED/ho GRACE/a10000 HAYNZ ROOSA TERBL TOWEL/h282",
-                  "32":  "EARED/ho GRACE/a10000 HAYNZ MYRON COPPE/h166"
+                  "28L": "HAYNZ MYRON/h126",
+                  "28R": "HAYNZ MYRON/h126",
+                  "10L": "HAYNZ ROOSA TERBL TOWEL/h282",
+                  "10R": "HAYNZ ROOSA TERBL TOWEL/h282",
+                  "32":  "HAYNZ MYRON COPPE/h166"
               }
           },
-          "waypoints": "SLT EARED/ho"
+          "waypoints": "SLT EARED/ho GRACE/a10000 HAYNZ"
       }
   ],
 

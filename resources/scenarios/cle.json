@@ -1854,7 +1854,7 @@
                         },
                         "cruise_altitude": 33000,
                         "expect_approach": "I4R",
-                        "initial_altitude": 7000,
+                        "initial_altitude": 11000,
                         "initial_controller": "CLE_A_APP",
                         "initial_speed": 250,
                         "speed_restriction": 210,
@@ -2236,7 +2236,7 @@
                         },
                         "cruise_altitude": 33000,
                         "expect_approach": "I6L",
-                        "initial_altitude": 9000,
+                        "initial_altitude": 10000,
                         "initial_controller": "CLE_A_APP",
                         "initial_speed": 250,
                         "speed_restriction": 210,
@@ -2945,7 +2945,7 @@
                                                             "speed_restriction": 210,
                                                             "star": "TRYBE4",
                                                             "scratchpad": "I6L",
-                                                            "waypoints": "NAGGY/a7000+ CLVTO/a9000/ho JAAIN/a7000/s210"
+                                                            "waypoints": "NAGGY/a7000+ CLVTO/a7000/ho JAAIN/a7000/s210"
                                                         }
                                                     ]
                         },

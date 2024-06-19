@@ -476,7 +476,7 @@
         "initial_controller": "MCO_B_APP",
         "initial_speed": 130,
         "route": "/. DOMES EYORE",
-        "waypoints": "ROCIT/ho APEAK DOMES EYORE"
+        "waypoints": "N028.44.48.560,W080.47.01.563 ROCIT/ho APEAK DOMES EYORE"
       }
     ]
   },

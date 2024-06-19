@@ -2641,7 +2641,7 @@
             } 
           ]
         },
-        "assigned_altitude": 5000,
+        "assigned_altitude": 7000,
         "cruise_altitude": 34000,
         "expect_approach": "I0L",
         "initial_altitude": 5000,
